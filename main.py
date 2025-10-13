@@ -1,15 +1,19 @@
 """
-SmartMoneyTracker 主程序
-协调数据获取、信号分析、风险评分和报告生成
+SmartMoneyTracker 主程序 (Bidirectional Analysis)
+协调数据获取、信号分析、双向评分和报告生成
+
+评分系统: -10 to +10
+- 正分: 机构进场/吸筹 (Accumulation)
+- 负分: 机构离场/派发 (Distribution)
 """
 
 import config
 from data_fetcher.manager import DataFetcher
-from analysis.pv_signals import analyze_price_volume
+from analysis.price_volume_signals import analyze_price_volume
 from analysis.indicator_signals import analyze_indicators
-from analysis.structural_signals import analyze_structural
+from analysis.disclosure_signals import analyze_structural
 from analysis.relative_strength import analyze_relative_strength
-from aggregator.scorer import RiskAggregator
+from aggregator.scorer import SignalAggregator
 from reporting.generator import ReportGenerator
 
 import logging
@@ -30,17 +34,17 @@ logger = logging.getLogger(__name__)
 
 
 class SmartMoneyScanner:
-    """机构资金撤离扫描器"""
+    """机构资金动向扫描器 (Bidirectional Analysis)"""
 
     def __init__(self):
         """初始化扫描器"""
-        logger.info("初始化 SmartMoneyTracker...")
+        logger.info("初始化 SmartMoneyTracker (双向分析系统)...")
 
         self.data_fetcher = DataFetcher(config)
-        self.risk_aggregator = RiskAggregator(config)
+        self.signal_aggregator = SignalAggregator(config)
         self.report_generator = ReportGenerator(config)
 
-        logger.info("SmartMoneyTracker 初始化完成")
+        logger.info("✅ SmartMoneyTracker 初始化完成 (评分范围: -10 to +10)")
 
     def scan_stock(
         self,
@@ -118,8 +122,8 @@ class SmartMoneyScanner:
                 structural_signals = analyze_structural(ticker, config, self.data_fetcher)
                 logger.info(f"检测到 {len(structural_signals)} 个结构性信号")
 
-            # 7. 聚合所有信号
-            logger.info("➡️聚合信号并计算风险评分...")
+            # 7. 聚合所有信号并计算双向评分
+            logger.info("聚合信号并计算综合评分...")
             all_signals = {
                 **pv_signals,
                 **indicator_signals,
@@ -127,28 +131,40 @@ class SmartMoneyScanner:
                 **structural_signals
             }
 
-            risk_result = self.risk_aggregator.calculate_score(all_signals)
+            score_result = self.signal_aggregator.calculate_score(all_signals)
 
             # 8. 生成建议
-            recommendation = self.risk_aggregator.get_recommendation(risk_result['risk_level'])
+            rating = score_result['rating']
+            score = score_result['score']
+            recommendation = self.signal_aggregator.get_recommendation(rating, score)
 
             # 9. 生成报告
             report = self.report_generator.generate_report(
                 ticker,
-                risk_result,
+                score_result,
                 recommendation
             )
 
-            logger.info(f"🔔分析完成: {ticker}")
-            logger.info(f"🔔风险评分: {risk_result['risk_score']}/{risk_result['max_score']} ({risk_result['risk_level']})")
+            # 打印结果
+            rating_emoji = {'STRONG_BUY': '🚀🚀', 'BUY': '🚀', 'NEUTRAL': '⚪',
+                           'SELL': '⚠️', 'STRONG_SELL': '🛑🛑'}.get(rating, '')
+
+            logger.info(f"✅ 分析完成: {ticker}")
+            logger.info(f"📊 综合评分: {score:+.1f}/10")
+            logger.info(f"🎯 综合评级: {rating} {rating_emoji}")
+            logger.info(f"📝 触发信号: {score_result['signal_count']} 个 (进场: {score_result.get('inflow_count', 0)}, 离场: {score_result.get('outflow_count', 0)})")
 
             return {
                 'ticker': ticker,
                 'success': True,
-                'risk_score': risk_result['risk_score'],
-                'risk_level': risk_result['risk_level'],
-                'signal_count': risk_result['signal_count'],
-                'triggered_signals': risk_result['triggered_signals'],
+                'score': score,
+                'rating': rating,
+                'signal_count': score_result['signal_count'],
+                'inflow_count': score_result.get('inflow_count', 0),
+                'outflow_count': score_result.get('outflow_count', 0),
+                'inflow_signals': score_result.get('inflow_signals', {}),
+                'outflow_signals': score_result.get('outflow_signals', {}),
+                'triggered_signals': score_result.get('triggered_signals', {}),
                 'recommendation': recommendation,
                 'report': report,
                 'data': df
@@ -209,7 +225,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description='SmartMoneyTracker - 机构资金撤离信号识别系统'
+        description='SmartMoneyTracker - 机构资金动向分析系统 (双向评分: -10 to +10)'
     )
 
     parser.add_argument(
@@ -282,21 +298,30 @@ def main():
         )
 
         # 打印摘要
-        print("\n" + "=" * 60)
-        print("批量扫描结果摘要")
-        print("=" * 60)
+        print("\n" + "=" * 70)
+        print("批量扫描结果摘要 (双向评分)")
+        print("=" * 70)
 
         for ticker, result in results.items():
             if result['success']:
-                risk_score = result['risk_score']
-                risk_level = result['risk_level']
+                score = result['score']
+                rating = result['rating']
                 signal_count = result['signal_count']
+                inflow_count = result.get('inflow_count', 0)
+                outflow_count = result.get('outflow_count', 0)
 
-                risk_emoji = {'LOW': '🟢', 'MEDIUM': '🟡', 'HIGH': '🔴'}.get(risk_level, '')
+                rating_emoji = {
+                    'STRONG_BUY': '🚀🚀',
+                    'BUY': '🚀',
+                    'NEUTRAL': '⚪',
+                    'SELL': '⚠️',
+                    'STRONG_SELL': '🛑🛑'
+                }.get(rating, '')
 
                 print(f"\n{ticker}:")
-                print(f"  风险评分: {risk_score}/10 ({risk_level}) {risk_emoji}")
-                print(f"  触发信号: {signal_count} 个")
+                print(f"  综合评分: {score:+.1f}/10")
+                print(f"  综合评级: {rating} {rating_emoji}")
+                print(f"  触发信号: {signal_count} 个 (进场: {inflow_count}, 离场: {outflow_count})")
             else:
                 print(f"\n{ticker}: ❌ 失败 - {result.get('error', '未知错误')}")
 

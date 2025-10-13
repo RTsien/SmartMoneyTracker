@@ -1,6 +1,10 @@
 """
-SmartMoneyTracker 使用示例
-演示如何使用 API 进行股票分析
+SmartMoneyTracker 使用示例 (双向分析系统)
+演示如何使用 API 进行机构资金动向分析
+
+评分系统: -10 to +10
+- 正分: 机构进场/吸筹 (Accumulation)
+- 负分: 机构离场/派发 (Distribution)
 """
 
 from main import SmartMoneyScanner
@@ -26,14 +30,20 @@ def example_scan_single_stock():
 
         # 访问具体数据
         print("\n详细信息:")
-        print(f"风险评分: {result['risk_score']}/10")
-        print(f"风险等级: {result['risk_level']}")
-        print(f"触发信号数: {result['signal_count']}")
+        print(f"综合评分: {result['score']:+.1f}/10 (-10 to +10)")
+        print(f"综合评级: {result['rating']}")
+        print(f"触发信号数: {result['signal_count']} (进场: {result['inflow_count']}, 离场: {result['outflow_count']})")
 
-        # 查看触发的信号
-        if result['signal_count'] > 0:
-            print("\n触发的信号:")
-            for signal_name, signal_info in result['triggered_signals'].items():
+        # 查看进场信号
+        if result['inflow_count'] > 0:
+            print("\n进场信号 (吸筹) 🟢:")
+            for signal_name, signal_info in result['inflow_signals'].items():
+                print(f"  - {signal_name}: 权重 +{signal_info['weight']}")
+
+        # 查看离场信号
+        if result['outflow_count'] > 0:
+            print("\n离场信号 (派发) 🔴:")
+            for signal_name, signal_info in result['outflow_signals'].items():
                 print(f"  - {signal_name}: 权重 {signal_info['weight']}")
     else:
         print(f"扫描失败: {result.get('error')}")
@@ -63,13 +73,21 @@ def example_scan_batch():
 
     for ticker, result in results.items():
         if result['success']:
-            risk_level = result['risk_level']
-            risk_emoji = {'LOW': '🟢', 'MEDIUM': '🟡', 'HIGH': '🔴'}.get(risk_level, '')
+            rating = result['rating']
+            score = result['score']
+            rating_emoji = {
+                'STRONG_BUY': '🚀🚀',
+                'BUY': '🚀',
+                'NEUTRAL': '⚪',
+                'SELL': '⚠️',
+                'STRONG_SELL': '🛑🛑'
+            }.get(rating, '')
 
             print(f"{ticker}:")
-            print(f"  风险评分: {result['risk_score']}/10 ({risk_level}) {risk_emoji}")
-            print(f"  触发信号: {result['signal_count']} 个")
-            print(f"  建议: {result['recommendation'][:50]}...")
+            print(f"  综合评分: {score:+.1f}/10")
+            print(f"  综合评级: {rating} {rating_emoji}")
+            print(f"  触发信号: {result['signal_count']} 个 (进场: {result['inflow_count']}, 离场: {result['outflow_count']})")
+            print(f"  建议: {result['recommendation'][:60]}...")
             print()
 
 
@@ -82,17 +100,20 @@ def example_custom_config():
     # 临时修改配置
     original_weights = config.SIGNAL_WEIGHTS.copy()
 
-    # 增加 OBV 背离的权重
-    config.SIGNAL_WEIGHTS['OBV_DIVERGENCE'] = 3
+    # 增加 OBV 看涨背离的权重
+    config.SIGNAL_WEIGHTS['OBV_BULLISH_DIVERGENCE'] = 3
+    config.SIGNAL_WEIGHTS['OBV_BEARISH_DIVERGENCE'] = -3
 
     print("自定义配置:")
-    print(f"  OBV_DIVERGENCE 权重: {config.SIGNAL_WEIGHTS['OBV_DIVERGENCE']}")
+    print(f"  OBV_BULLISH_DIVERGENCE 权重: +{config.SIGNAL_WEIGHTS['OBV_BULLISH_DIVERGENCE']}")
+    print(f"  OBV_BEARISH_DIVERGENCE 权重: {config.SIGNAL_WEIGHTS['OBV_BEARISH_DIVERGENCE']}")
 
     scanner = SmartMoneyScanner()
     result = scanner.scan_stock('600519.SH')
 
     if result['success']:
-        print(f"\n风险评分: {result['risk_score']}/10 ({result['risk_level']})")
+        print(f"\n综合评分: {result['score']:+.1f}/10")
+        print(f"综合评级: {result['rating']}")
 
     # 恢复原配置
     config.SIGNAL_WEIGHTS = original_weights
@@ -113,9 +134,9 @@ def example_analyze_us_stock():
     result = scanner.scan_stock(ticker, period=250, analyze_structure=False)
 
     if result['success']:
-        print(f"\n风险评分: {result['risk_score']}/10")
-        print(f"风险等级: {result['risk_level']}")
-        print(f"触发信号数: {result['signal_count']}")
+        print(f"\n综合评分: {result['score']:+.1f}/10")
+        print(f"综合评级: {result['rating']}")
+        print(f"触发信号数: {result['signal_count']} (进场: {result['inflow_count']}, 离场: {result['outflow_count']})")
     else:
         print(f"分析失败: {result.get('error')}")
 

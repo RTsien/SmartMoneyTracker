@@ -45,35 +45,68 @@ STOCK_POOL: List[str] = [
 ]
 
 # =============================================================================
-# 信号权重配置
+# 信号权重配置 (Bidirectional: -10 to +10)
 # =============================================================================
+# 正数权重: 机构进场/吸筹信号 (Accumulation/Inflow)
+# 负数权重: 机构离场/派发信号 (Distribution/Outflow)
 
 SIGNAL_WEIGHTS: Dict[str, int] = {
-    # 价量关系信号 (1-3分)
-    'HIGH_VOLUME_STAGNATION': 2,           # 高位放量滞涨
-    'HIGH_VOLUME_DECLINE': 2,              # 放量下跌
-    'BREAK_SUPPORT_HEAVY_VOLUME': 3,       # 放量跌破支撑
-    'LOW_VOLUME_RISE': 1,                  # 高位缩量上涨
+    # ========== 进场信号 (正数权重) ==========
 
-    # 技术指标信号 (2-3分)
-    'OBV_DIVERGENCE': 2,                   # OBV看跌背离
-    'MFI_DIVERGENCE': 2,                   # MFI看跌背离
-    'RSI_DIVERGENCE': 1,                   # RSI看跌背离
-    'MACD_DIVERGENCE': 2,                  # MACD看跌背离
+    # 价量关系 - 吸筹信号 (Accumulation Patterns)
+    'ACCUMULATION_BREAKOUT': 2,            # 放量突破横盘区
+    'WYCKOFF_SPRING': 2,                   # 威科夫弹簧/震仓
 
-    # 结构性信号 (2-4分)
-    'INSTITUTIONAL_SELL_OFF': 4,           # 机构大幅减持
-    'SHAREHOLDER_COUNT_INCREASE': 3,       # 股东户数显著增加
-    'INSIDER_SELLING': 3,                  # 董监高减持
+    # 技术指标 - 看涨信号 (Bullish Signals)
+    'OBV_BULLISH_DIVERGENCE': 2,           # OBV看涨背离 (价格新低，OBV更高)
+    'MFI_OVERSOLD': 1,                     # MFI超卖 (< 20)
+    'MFI_BULLISH_DIVERGENCE': 2,           # MFI看涨背离
 
-    # 相对强弱信号 (1-2分)
-    'RELATIVE_STRENGTH_WEAK': 2,           # 相对强度疲弱
-    'SECTOR_UNDERPERFORMANCE': 1,          # 跑输行业板块
+    # 结构性信号 - 吸筹证据 (Structural Accumulation)
+    'NEW_INSTITUTION': 3,                  # 新机构进入十大股东 (最高权重)
+    'INSTITUTIONAL_BUY_IN': 3,             # 机构增持
+    'SHAREHOLDER_COUNT_DECREASE': 1,       # 股东户数减少 (筹码集中)
 
-    # 基本面催化剂 (3-4分)
-    'NEGATIVE_NEWS': 3,                    # 负面新闻
-    'EARNINGS_WARNING': 4,                 # 业绩预警
-    'POLICY_HEADWIND': 3,                  # 不利政策
+    # 微观结构 - 买方压力 (Microstructure Buy Pressure)
+    'BID_WALL_SUPPORT': 1,                 # 买单墙支撑
+
+    # 相对强弱 - 跑赢市场 (Relative Strength)
+    'RSP_STRONG': 1,                       # 相对强度强势 (跑赢大盘/行业)
+
+    # ========== 离场信号 (负数权重) ==========
+
+    # 价量关系 - 派发信号 (Distribution Patterns)
+    'HIGH_VOLUME_STAGNATION': -2,          # 高位放量滞涨
+    'HIGH_VOLUME_DECLINE': -2,             # 放量下跌
+    'BREAK_SUPPORT_HEAVY_VOLUME': -3,      # 放量跌破支撑 (最强离场信号)
+    'LOW_VOLUME_RISE': -1,                 # 高位缩量上涨
+
+    # 技术指标 - 看跌信号 (Bearish Signals)
+    'OBV_BEARISH_DIVERGENCE': -2,          # OBV看跌背离 (价格新高，OBV更低)
+    'MFI_OVERBOUGHT': -1,                  # MFI超买 (> 80)
+    'MFI_BEARISH_DIVERGENCE': -2,          # MFI看跌背离
+    'RSI_BEARISH_DIVERGENCE': -1,          # RSI看跌背离
+    'MACD_BEARISH_DIVERGENCE': -2,         # MACD看跌背离
+
+    # 结构性信号 - 派发证据 (Structural Distribution)
+    'INSTITUTIONAL_SELL_OFF': -3,          # 机构大幅减持 (最高权重)
+    'SHAREHOLDER_COUNT_INCREASE': -1,      # 股东户数增加 (筹码分散)
+    'INSIDER_SELLING': -3,                 # 董监高减持
+
+    # 微观结构 - 卖方压力 (Microstructure Sell Pressure)
+    'ASK_WALL_PRESSURE': -1,               # 卖盘压单
+
+    # 相对强弱 - 跑输市场 (Relative Weakness)
+    'RSP_WEAK': -1,                        # 相对强度疲弱 (跑输大盘/行业)
+    'SECTOR_UNDERPERFORMANCE': -1,         # 跑输行业板块
+
+    # 基本面催化剂 (Fundamental Catalysts)
+    'POSITIVE_NEWS': 3,                    # 正面新闻/催化剂
+    'NEGATIVE_NEWS': -3,                   # 负面新闻
+    'EARNINGS_BEAT': 4,                    # 业绩超预期
+    'EARNINGS_WARNING': -4,                # 业绩预警
+    'POLICY_TAILWIND': 3,                  # 有利政策
+    'POLICY_HEADWIND': -3,                 # 不利政策
 }
 
 # =============================================================================
@@ -114,14 +147,16 @@ RELATIVE_STRENGTH_PARAMS = {
 }
 
 # =============================================================================
-# 风险评分配置
+# 评分配置 (Bidirectional Scoring: -10 to +10)
 # =============================================================================
 
-# 风险等级阈值
-RISK_THRESHOLDS = {
-    'LOW': (0, 3),        # 0-3分: 低风险
-    'MEDIUM': (4, 6),     # 4-6分: 中等风险
-    'HIGH': (7, 10),      # 7-10分: 高风险
+# 评分到评级的映射
+SCORE_TO_RATING = {
+    'STRONG_BUY': (6, 10),       # +6 到 +10: 强烈买入 (强力吸筹)
+    'BUY': (2, 5),               # +2 到 +5: 买入 (温和吸筹)
+    'NEUTRAL': (-1, 1),          # -1 到 +1: 中性
+    'SELL': (-5, -2),            # -5 到 -2: 卖出 (温和派发)
+    'STRONG_SELL': (-10, -6),    # -10 到 -6: 强烈卖出 (强力派发)
 }
 
 # =============================================================================
