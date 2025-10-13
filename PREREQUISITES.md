@@ -135,7 +135,7 @@ Level-2行情数据提供了更深度的市场信息，有助于识别大资金�
 
 对于审慎的投资者而言，最终的目标是建立一种基于证据的概率性思维模式。当来自不同维度的多个信号共同指向同一方向时——无论是吸筹还是派发——采取相应行动的成功概率将大大提高。分析的目的不是追求绝对的确定性，而是识别出那些因大型、知情市场参与者的行为而导致风险收益比已发生根本性转变的高概率情景。
 
-#### **Works cited**
+#### **References**
 
 <a id="1"></a>1. 从量价变化中洞察主力意图, accessed October 11, 2025, [https://www.icbc.com.cn/icbc/html/zhaopin/jzh/zuixinhuodong/03liang.html](https://www.icbc.com.cn/icbc/html/zhaopin/jzh/zuixinhuodong/03liang.html)  
 <a id="2"></a>2. 什麼是成交量？對於交易有什麼重大意義？ \- OANDA Lab, accessed October 11, 2025, [https://www.oanda.com/bvi-ft/lab-education/dictionary/trading-volume/](https://www.oanda.com/bvi-ft/lab-education/dictionary/trading-volume/)  
@@ -224,4 +224,4 @@ Level-2行情数据提供了更深度的市场信息，有助于识别大资金�
 <a id="85"></a>85. 许昭栏目-A股11.9大盘走势分析- 理财 \- 工商银行, accessed October 11, 2025, [https://www.icbc.com.cn/page/721852442974388236.html](https://www.icbc.com.cn/page/721852442974388236.html)  
 <a id="86"></a>86. 如何理解市场弱势和连板强势之间的背离？ \- 华尔街见闻, accessed October 11, 2025, [https://wallstreetcn.com/articles/3699738](https://wallstreetcn.com/articles/3699738)  
 <a id="87"></a>87. 高频术语 \- 股票- 东方财富, accessed October 11, 2025, [https://stock.eastmoney.com/xuexiao/xx530.html](https://stock.eastmoney.com/xuexiao/xx530.html)  
-<a id="88"></a>88. [14](#14)点快评：短线情绪与指数背离炸板率居高不下 \- 财联社, accessed October 11, 2025, [https://m.cls.cn/detail/1261679](https://m.cls.cn/detail/1261679)
+<a id="88"></a>88. 14点快评：短线情绪与指数背离炸板率居高不下 \- 财联社, accessed October 11, 2025, [https://m.cls.cn/detail/1261679](https://m.cls.cn/detail/1261679)
