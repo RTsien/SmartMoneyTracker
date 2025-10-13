@@ -163,31 +163,40 @@ Recommendation:
 
 | 市场 | 数据源 | 核心特色 |
 |------|--------|----------|
-| **A股** | Tushare, AkShare | 北向资金监控、十大股东分析、董监高减持追踪 |
-| **美股** | yfinance, SEC EDGAR | 13F 报告分析、内部人交易监控 |
-| **港股** | 港交所数据 | 披露易（DI）数据、南向资金追踪 |
+| **A股** | **AkShare (默认)**, Tushare | 北向资金监控、十大股东分析、股东户数分析 |
+| **美股** | yfinance | 机构持股数据、日线行情数据 |
+| **港股** | yfinance, AkShare | 机构持股数据、港股通持股数据 |
 
 ## 📈 数据来源
 
-- **日线行情**: Tushare, yfinance
+- **日线行情**: 
+  - A股: **AkShare (默认)**, Tushare
+  - 美股/港股: yfinance
 - **Level-2 数据**: 东方财富 Choice, 万得
 - **机构持仓**:
-  - A股: Tushare (top10_holders, stk_holdernumber)
-  - 美股: SEC EDGAR 13F 报告
-  - 港股: 披露易（DI）
+  - A股: **AkShare (默认)**, Tushare (top10_holders, stk_holdernumber)
+  - 美股: **yfinance (已实现)** - 机构持股者数据
+  - 港股: **yfinance + AkShare (已实现)** - 双数据源支持
 - **资金流向**:
-  - 北向资金: Tushare (hk_hold)
+  - 北向资金: **AkShare (默认)**, Tushare (hk_hold)
   - 南向资金: Eastmoney API
 - **公告新闻**: 巨潮资讯网、交易所官网
+
+> **重要更新**: 
+> - ✅ 系统默认使用 **AkShare** 作为 A股数据源（**无需 Token，开箱即用**）
+> - ✅ 智能降级机制：AkShare 失败时自动切换到 Tushare
+> - ✅ 港美股机构持股数据已实现（通过 yfinance）
+> - ✅ 可通过环境变量 `A_STOCK_DATA_SOURCE` 手动切换数据源
 
 ## 🔧 配置说明
 
 在 `config.py` 中配置：
 
 ```python
-# API 密钥
-TUSHARE_TOKEN = "your_token_here"
+# 数据源配置
+A_STOCK_DATA_SOURCE = 'akshare'  # 可选: 'akshare' (默认), 'tushare'
 AKSHARE_ENABLED = True
+TUSHARE_TOKEN = "your_token_here"  # 仅在使用 Tushare 时需要
 
 # 股票池
 STOCK_POOL = [
@@ -210,9 +219,21 @@ LOOKBACK_PERIOD = 60  # 回看天数
 VOL_MULTIPLIER = 2.0   # 放量倍数
 ```
 
+### 切换数据源
+
+通过环境变量切换 A股数据源：
+
+```bash
+# 使用 AkShare (默认，无需 Token)
+python3 main.py 600519.SH
+
+# 使用 Tushare (需要配置 TUSHARE_TOKEN)
+A_STOCK_DATA_SOURCE=tushare python3 main.py 600519.SH
+```
+
 ## 📚 理论基础
 
-本项目基于《撤离信号：识别股票大资金退出的多维度分析框架》研究报告。详细分析框架请参考：
+本项目基于以下详细分析框架：
 
 - [完整理论文档](PREREQUISITES.md)
 - [技术规格说明](SPEC.md)
@@ -234,24 +255,27 @@ VOL_MULTIPLIER = 2.0   # 放量倍数
 - [x] 理论框架文档
 - [x] 技术规格说明
 
-### Phase 2: 数据层 (进行中)
-- [ ] 实现数据获取管理器
-- [ ] 集成 Tushare API
-- [ ] 集成 AkShare API
-- [ ] 集成 yfinance
+### Phase 2: 数据层 ✅ 已完成
+- [x] 实现数据获取管理器
+- [x] 集成 AkShare API（默认）
+- [x] 集成 Tushare API（备选）
+- [x] 集成 yfinance（美股/港股）
+- [x] 实现智能数据源切换
 
-### Phase 3: 分析层
-- [ ] 价量关系信号分析
-- [ ] 技术指标信号分析
-- [ ] 结构性信号分析
-- [ ] 相对强弱分析
+### Phase 3: 分析层 ✅ 已完成
+- [x] 价量关系信号分析
+- [x] 技术指标信号分析
+- [x] 结构性信号分析
+- [x] 相对强弱分析
+- [x] 港美股机构持股数据获取
 
-### Phase 4: 聚合与报告
-- [ ] 风险评分系统
-- [ ] 报告生成器
+### Phase 4: 聚合与报告 ✅ 已完成
+- [x] 风险评分系统
+- [x] 报告生成器
 - [ ] 可视化图表
 
 ### Phase 5: 优化与扩展
+- [ ] 数据缓存机制
 - [ ] 并发处理优化
 - [ ] 实时监控模式
 - [ ] Web 界面

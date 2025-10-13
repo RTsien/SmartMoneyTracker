@@ -10,6 +10,10 @@ from typing import Dict, List
 # API 配置
 # =============================================================================
 
+# 数据源优先级配置 (A股)
+# 可选: 'akshare', 'tushare'
+A_STOCK_DATA_SOURCE = os.getenv('A_STOCK_DATA_SOURCE', 'akshare')
+
 # Tushare Token (A股数据)
 TUSHARE_TOKEN = os.getenv('TUSHARE_TOKEN', '')
 

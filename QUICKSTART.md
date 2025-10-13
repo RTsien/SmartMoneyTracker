@@ -15,25 +15,6 @@ cd SmartMoneyTracker
 pip install -r requirements.txt
 ```
 
-### 3. 配置 API 密钥
-
-复制环境变量示例文件：
-
-```bash
-cp .env.example .env
-```
-
-编辑 `.env` 文件，填入你的 Tushare Token：
-
-```
-TUSHARE_TOKEN=your_actual_token_here
-```
-
-**如何获取 Tushare Token:**
-1. 访问 https://tushare.pro/register
-2. 注册账号
-3. 在个人中心获取 Token
-
 ## 使用方法
 
 ### 方式1: 命令行使用
@@ -225,13 +206,13 @@ for ticker, result in results.items():
 ## 技术支持
 
 - 查看完整文档: [README.md](README.md)
-- 理论框架: [识别股票大资金撤离信号.md](识别股票大资金撤离信号.md)
-- 技术规格: [spec.md](spec.md)
+- 理论框架: [PREREQUISITES.md](PREREQUISITES.md)
+- 技术规格: [SPEC.md](SPEC.md)
 - 问题反馈: [GitHub Issues](https://github.com/yourusername/SmartMoneyTracker/issues)
 
 ## 下一步
 
-- 📖 阅读[理论文档](识别股票大资金撤离信号.md)深入了解分析框架
+- 📖 阅读[理论文档](PREREQUISITES.md)深入了解分析框架
 - 🔧 调整 [config.py](config.py) 以适应你的需求
 - 🧪 使用历史数据进行回测验证
 - 📊 开发可视化界面（计划中）

@@ -26,8 +26,20 @@ class DataFetcher:
             config: 配置模块
         """
         self.config = config
+        self.data_source = getattr(config, 'A_STOCK_DATA_SOURCE', 'akshare')
         self.tushare_token = config.TUSHARE_TOKEN
         self.ts_api = None
+        self.akshare_available = False
+
+        # 初始化 AkShare
+        if config.AKSHARE_ENABLED:
+            try:
+                import akshare as ak
+                self.ak = ak
+                self.akshare_available = True
+                logger.info("AkShare 初始化成功")
+            except Exception as e:
+                logger.warning(f"AkShare 初始化失败: {e}")
 
         # 初始化 Tushare
         if self.tushare_token:
@@ -35,9 +47,9 @@ class DataFetcher:
                 import tushare as ts
                 ts.set_token(self.tushare_token)
                 self.ts_api = ts.pro_api()
-                logger.info("Tushare API 初始化成功")
+                logger.info("Tushare 初始化成功")
             except Exception as e:
-                logger.warning(f"Tushare API 初始化失败: {e}")
+                logger.warning(f"Tushare 初始化失败: {e}")
 
     def _detect_market(self, ticker: str) -> str:
         """
@@ -99,6 +111,74 @@ class DataFetcher:
 
     def _get_a_stock_daily(self, ticker: str, start_date: str, end_date: str) -> pd.DataFrame:
         """获取A股日线数据"""
+        # 优先使用配置的数据源
+        if self.data_source == 'akshare' and self.akshare_available:
+            df = self._get_a_stock_daily_akshare(ticker, start_date, end_date)
+            if not df.empty:
+                return df
+            # 如果 akshare 失败，尝试 tushare
+            logger.warning("AkShare 获取数据失败，尝试使用 Tushare")
+        
+        # 使用 Tushare
+        return self._get_a_stock_daily_tushare(ticker, start_date, end_date)
+
+    def _get_a_stock_daily_akshare(self, ticker: str, start_date: str, end_date: str) -> pd.DataFrame:
+        """使用 AkShare 获取A股日线数据"""
+        if not self.akshare_available:
+            logger.error("AkShare 未初始化")
+            return pd.DataFrame()
+
+        try:
+            # 格式化日期为 YYYY-MM-DD
+            if len(start_date) == 8:
+                start_date = f"{start_date[:4]}-{start_date[4:6]}-{start_date[6:]}"
+            if len(end_date) == 8:
+                end_date = f"{end_date[:4]}-{end_date[4:6]}-{end_date[6:]}"
+
+            # AkShare 使用不带后缀的股票代码
+            symbol = ticker.split('.')[0]
+            
+            # 获取历史行情数据
+            df = self.ak.stock_zh_a_hist(
+                symbol=symbol,
+                period="daily",
+                start_date=start_date.replace('-', ''),
+                end_date=end_date.replace('-', ''),
+                adjust=""
+            )
+
+            if df.empty:
+                return df
+
+            # 标准化列名 (AkShare 返回中文列名)
+            df = df.rename(columns={
+                '日期': 'date',
+                '开盘': 'open',
+                '最高': 'high',
+                '最低': 'low',
+                '收盘': 'close',
+                '成交量': 'volume',
+                '成交额': 'amount'
+            })
+
+            # 转换日期格式
+            df['date'] = pd.to_datetime(df['date'])
+            df = df.sort_values('date').reset_index(drop=True)
+
+            # 确保数值类型
+            numeric_cols = ['open', 'high', 'low', 'close', 'volume', 'amount']
+            for col in numeric_cols:
+                if col in df.columns:
+                    df[col] = pd.to_numeric(df[col], errors='coerce')
+
+            return df[['date', 'open', 'high', 'low', 'close', 'volume', 'amount']]
+
+        except Exception as e:
+            logger.error(f"AkShare 获取数据失败: {e}")
+            return pd.DataFrame()
+
+    def _get_a_stock_daily_tushare(self, ticker: str, start_date: str, end_date: str) -> pd.DataFrame:
+        """使用 Tushare 获取A股日线数据"""
         if not self.ts_api:
             logger.error("Tushare API 未初始化")
             return pd.DataFrame()
@@ -196,17 +276,51 @@ class DataFetcher:
             if market == 'A_STOCK':
                 return self._get_a_stock_holders(ticker, report_date)
             elif market == 'US_STOCK':
-                logger.warning("美股机构持股数据需要额外的 SEC 13F 数据源")
-                return pd.DataFrame()
+                return self._get_us_stock_holders(ticker)
             else:  # HK_STOCK
-                logger.warning("港股机构持股数据需要披露易(DI)数据源")
-                return pd.DataFrame()
+                return self._get_hk_stock_holders(ticker)
         except Exception as e:
             logger.error(f"获取 {ticker} 机构持股数据失败: {e}")
             return pd.DataFrame()
 
     def _get_a_stock_holders(self, ticker: str, report_date: Optional[str]) -> pd.DataFrame:
         """获取A股前十大流通股东"""
+        # 优先使用配置的数据源
+        if self.data_source == 'akshare' and self.akshare_available:
+            df = self._get_a_stock_holders_akshare(ticker, report_date)
+            if not df.empty:
+                return df
+            logger.warning("AkShare 获取机构持股数据失败，尝试使用 Tushare")
+        
+        # 使用 Tushare
+        return self._get_a_stock_holders_tushare(ticker, report_date)
+
+    def _get_a_stock_holders_akshare(self, ticker: str, report_date: Optional[str]) -> pd.DataFrame:
+        """使用 AkShare 获取A股前十大流通股东"""
+        if not self.akshare_available:
+            logger.error("AkShare 未初始化")
+            return pd.DataFrame()
+
+        try:
+            # AkShare 使用不带后缀的股票代码
+            symbol = ticker.split('.')[0]
+            
+            # 获取十大流通股东数据
+            df = self.ak.stock_gdfx_free_top_10_em(symbol=symbol)
+
+            if df.empty:
+                return df
+
+            # 标准化列名以匹配 Tushare 格式
+            # AkShare 返回的列名可能不同，需要根据实际情况调整
+            return df
+
+        except Exception as e:
+            logger.error(f"AkShare 获取机构持股数据失败: {e}")
+            return pd.DataFrame()
+
+    def _get_a_stock_holders_tushare(self, ticker: str, report_date: Optional[str]) -> pd.DataFrame:
+        """使用 Tushare 获取A股前十大流通股东"""
         if not self.ts_api:
             logger.error("Tushare API 未初始化")
             return pd.DataFrame()
@@ -221,6 +335,114 @@ class DataFetcher:
         )
 
         return df
+
+    def _get_us_stock_holders(self, ticker: str) -> pd.DataFrame:
+        """
+        获取美股机构持股数据
+        
+        数据源选项：
+        1. yfinance - 提供主要机构持股者信息
+        2. SEC EDGAR API - 13F 报告（需要额外实现）
+        
+        Args:
+            ticker: 股票代码
+            
+        Returns:
+            DataFrame: 机构持股数据
+        """
+        try:
+            import yfinance as yf
+        except ImportError:
+            logger.error("yfinance 未安装")
+            return pd.DataFrame()
+        
+        try:
+            stock = yf.Ticker(ticker)
+            # 获取主要持股者信息
+            holders = stock.institutional_holders
+            
+            if holders is None or holders.empty:
+                logger.warning(f"{ticker} 无机构持股数据")
+                return pd.DataFrame()
+            
+            # 标准化列名以便后续分析
+            holders = holders.rename(columns={
+                'Holder': 'holder_name',
+                'Shares': 'shares',
+                'Date Reported': 'report_date',
+                'Value': 'value',
+                '% Out': 'pct_held'
+            })
+            
+            return holders
+            
+        except Exception as e:
+            logger.error(f"获取美股 {ticker} 机构持股数据失败: {e}")
+            return pd.DataFrame()
+    
+    def _get_hk_stock_holders(self, ticker: str) -> pd.DataFrame:
+        """
+        获取港股机构持股数据
+        
+        数据源选项：
+        1. AkShare - 提供港股通持股数据（优先）
+        2. yfinance - 提供机构持股者信息（备选）
+        3. 披露易 API（需要额外实现）
+        
+        Args:
+            ticker: 股票代码（如 0700.HK）
+            
+        Returns:
+            DataFrame: 机构持股数据
+        """
+        # 方案1：尝试使用 AkShare 获取港股通数据
+        if self.akshare_available:
+            try:
+                # 提取股票代码（去掉 .HK 后缀）
+                symbol = ticker.split('.')[0]
+                
+                # 获取港股通持股数据（南向资金）
+                df = self.ak.stock_hk_ggt_components_em()
+                
+                if not df.empty:
+                    # 筛选特定股票
+                    df = df[df['代码'] == symbol]
+                    
+                    if not df.empty:
+                        logger.info(f"通过 AkShare 获取到 {ticker} 港股通持股数据")
+                        return df
+                
+                logger.debug(f"{ticker} 不在港股通标的中，尝试使用 yfinance")
+                
+            except Exception as e:
+                logger.debug(f"AkShare 获取港股数据失败: {e}，尝试使用 yfinance")
+        
+        # 方案2：使用 yfinance 作为备选
+        try:
+            import yfinance as yf
+            
+            stock = yf.Ticker(ticker)
+            holders = stock.institutional_holders
+            
+            if holders is None or holders.empty:
+                logger.warning(f"{ticker} 无机构持股数据")
+                return pd.DataFrame()
+            
+            # 标准化列名
+            holders = holders.rename(columns={
+                'Holder': 'holder_name',
+                'Shares': 'shares',
+                'Date Reported': 'report_date',
+                'Value': 'value',
+                '% Out': 'pct_held'
+            })
+            
+            logger.info(f"通过 yfinance 获取到 {ticker} 机构持股数据")
+            return holders
+            
+        except Exception as e:
+            logger.error(f"获取港股 {ticker} 机构持股数据失败: {e}")
+            return pd.DataFrame()
 
     def get_shareholder_count(self, ticker: str) -> pd.DataFrame:
         """
@@ -238,6 +460,42 @@ class DataFetcher:
             logger.warning(f"{ticker} 不是A股，暂不支持股东户数查询")
             return pd.DataFrame()
 
+        # 优先使用配置的数据源
+        if self.data_source == 'akshare' and self.akshare_available:
+            df = self._get_shareholder_count_akshare(ticker)
+            if not df.empty:
+                return df
+            logger.warning("AkShare 获取股东户数失败，尝试使用 Tushare")
+        
+        # 使用 Tushare
+        return self._get_shareholder_count_tushare(ticker)
+
+    def _get_shareholder_count_akshare(self, ticker: str) -> pd.DataFrame:
+        """使用 AkShare 获取股东户数"""
+        if not self.akshare_available:
+            logger.error("AkShare 未初始化")
+            return pd.DataFrame()
+
+        try:
+            # AkShare 使用不带后缀的股票代码
+            symbol = ticker.split('.')[0]
+            
+            # 获取股东户数数据
+            df = self.ak.stock_zh_a_gdhs(symbol=symbol)
+
+            if df.empty:
+                return df
+
+            # 标准化列名以匹配 Tushare 格式
+            # 需要根据 AkShare 实际返回的列名进行调整
+            return df
+
+        except Exception as e:
+            logger.error(f"AkShare 获取股东户数失败: {e}")
+            return pd.DataFrame()
+
+    def _get_shareholder_count_tushare(self, ticker: str) -> pd.DataFrame:
+        """使用 Tushare 获取股东户数"""
         if not self.ts_api:
             logger.error("Tushare API 未初始化")
             return pd.DataFrame()
@@ -265,6 +523,40 @@ class DataFetcher:
             logger.warning(f"{ticker} 不是A股，无北向资金数据")
             return pd.DataFrame()
 
+        # 优先使用配置的数据源
+        if self.data_source == 'akshare' and self.akshare_available:
+            df = self._get_northbound_holdings_akshare(ticker)
+            if not df.empty:
+                return df
+            logger.warning("AkShare 获取北向资金数据失败，尝试使用 Tushare")
+        
+        # 使用 Tushare
+        return self._get_northbound_holdings_tushare(ticker)
+
+    def _get_northbound_holdings_akshare(self, ticker: str) -> pd.DataFrame:
+        """使用 AkShare 获取北向资金持股数据"""
+        if not self.akshare_available:
+            logger.error("AkShare 未初始化")
+            return pd.DataFrame()
+
+        try:
+            # AkShare 使用不带后缀的股票代码
+            symbol = ticker.split('.')[0]
+            
+            # 获取北向资金持股数据
+            df = self.ak.stock_em_hsgt_stock_statistics(symbol=symbol)
+
+            if df.empty:
+                return df
+
+            return df
+
+        except Exception as e:
+            logger.error(f"AkShare 获取北向资金数据失败: {e}")
+            return pd.DataFrame()
+
+    def _get_northbound_holdings_tushare(self, ticker: str) -> pd.DataFrame:
+        """使用 Tushare 获取北向资金持股数据"""
         if not self.ts_api:
             logger.error("Tushare API 未初始化")
             return pd.DataFrame()

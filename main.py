@@ -76,7 +76,12 @@ class SmartMoneyScanner:
                     'error': '无法获取数据'
                 }
 
-            logger.info(f"获取到 {len(df)} 条数据记录")
+            # 打印数据概览
+            first_row = df.iloc[0]
+            last_row = df.iloc[-1]
+            logger.info(f"  获取到 {len(df)} 条数据记录")
+            logger.info(f"  {first_row['date'].strftime('%Y-%m-%d') if 'date' in df.columns else '日期未知'} 开盘={first_row['open']:.2f} 收盘={first_row['close']:.2f}")
+            logger.info(f"  {last_row['date'].strftime('%Y-%m-%d') if 'date' in df.columns else '日期未知'} 开盘={last_row['open']:.2f} 收盘={last_row['close']:.2f}")
 
             # 2. 计算技术指标
             logger.info("步骤 2/5: 计算技术指标...")
@@ -85,12 +90,12 @@ class SmartMoneyScanner:
             # 3. 分析价量关系信号
             logger.info("步骤 3/5: 分析价量关系...")
             pv_signals = analyze_price_volume(df, config)
-            logger.info(f"检测到 {len(pv_signals)} 个价量信号")
+            logger.info(f"  检测到 {len(pv_signals)} 个价量信号")
 
             # 4. 分析技术指标信号
             logger.info("步骤 4/5: 分析技术指标...")
             indicator_signals = analyze_indicators(df, config)
-            logger.info(f"检测到 {len(indicator_signals)} 个指标信号")
+            logger.info(f"  检测到 {len(indicator_signals)} 个指标信号")
 
             # 5. 分析相对强弱（需要基准数据）
             logger.info("步骤 5/5: 分析相对强弱...")
@@ -104,7 +109,7 @@ class SmartMoneyScanner:
 
                 if not benchmark_df.empty:
                     relative_signals = analyze_relative_strength(df, benchmark_df, config)
-                    logger.info(f"检测到 {len(relative_signals)} 个相对强弱信号")
+                    logger.info(f"  检测到 {len(relative_signals)} 个相对强弱信号")
 
             # 6. 分析结构性信号（可选）
             structural_signals = {}
@@ -114,7 +119,7 @@ class SmartMoneyScanner:
                 logger.info(f"检测到 {len(structural_signals)} 个结构性信号")
 
             # 7. 聚合所有信号
-            logger.info("聚合信号并计算风险评分...")
+            logger.info("➡️聚合信号并计算风险评分...")
             all_signals = {
                 **pv_signals,
                 **indicator_signals,
@@ -134,8 +139,8 @@ class SmartMoneyScanner:
                 recommendation
             )
 
-            logger.info(f"分析完成: {ticker}")
-            logger.info(f"风险评分: {risk_result['risk_score']}/{risk_result['max_score']} ({risk_result['risk_level']})")
+            logger.info(f"🔔分析完成: {ticker}")
+            logger.info(f"🔔风险评分: {risk_result['risk_score']}/{risk_result['max_score']} ({risk_result['risk_level']})")
 
             return {
                 'ticker': ticker,

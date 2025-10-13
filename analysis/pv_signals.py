@@ -42,21 +42,25 @@ class PriceVolumeSignals:
 
         # 1. 高位放量滞涨
         stagnation_signal = self.detect_high_volume_stagnation(df)
+        logger.debug(f"高位放量滞涨检测: {stagnation_signal}")
         if stagnation_signal['detected']:
             signals['HIGH_VOLUME_STAGNATION'] = stagnation_signal
 
         # 2. 放量下跌
         decline_signal = self.detect_high_volume_decline(df)
+        logger.debug(f"放量下跌检测: {decline_signal}")
         if decline_signal['detected']:
             signals['HIGH_VOLUME_DECLINE'] = decline_signal
 
         # 3. 放量跌破支撑
         support_break_signal = self.detect_break_support(df)
+        logger.debug(f"放量跌破支撑检测: {support_break_signal}")
         if support_break_signal['detected']:
             signals['BREAK_SUPPORT_HEAVY_VOLUME'] = support_break_signal
 
         # 4. 高位缩量上涨
         low_volume_rise = self.detect_low_volume_rise(df)
+        logger.debug(f"高位缩量上涨检测: {low_volume_rise}")
         if low_volume_rise['detected']:
             signals['LOW_VOLUME_RISE'] = low_volume_rise
 
@@ -100,6 +104,7 @@ class PriceVolumeSignals:
         in_uptrend = price_change > 0.10
 
         if not in_uptrend:
+            logger.debug(f"高位放量滞涨: 不在上涨趋势中 (涨幅: {price_change:.2%}, 需要 > 10%)")
             return {'detected': False}
 
         # 检查近期是否放量
@@ -112,6 +117,8 @@ class PriceVolumeSignals:
         recent_price_change = (recent_df['close'].iloc[-1] / recent_df['close'].iloc[0] - 1)
         is_stagnant = abs(recent_price_change) < price_threshold
 
+        logger.debug(f"高位放量滞涨详情: 放量={is_high_volume} (均量比={avg_recent_volume/avg_baseline_volume:.2f}x, 需要>{vol_multiplier}x), 滞涨={is_stagnant} (涨幅={recent_price_change:.2%}, 需要<{price_threshold:.2%})")
+        
         detected = is_high_volume and is_stagnant
 
         signal_date = df['date'].iloc[-1] if 'date' in df.columns else None
@@ -182,6 +189,7 @@ class PriceVolumeSignals:
                         signal_dates.append(df.loc[idx, 'date'])
                     max_decline = min(max_decline, decline)
                     max_volume_ratio = max(max_volume_ratio, volume_ratio)
+                    logger.debug(f"放量下跌检测到: 跌幅={decline:.2%}, 成交量比={volume_ratio:.2f}x")
 
         return {
             'detected': detected,
@@ -256,6 +264,9 @@ class PriceVolumeSignals:
                         })
 
         detected = len(broken_supports) > 0
+        
+        if not detected:
+            logger.debug(f"放量跌破支撑: 未检测到跌破支撑位")
 
         return {
             'detected': detected,
@@ -293,6 +304,7 @@ class PriceVolumeSignals:
         in_uptrend = price_change > 0.10
 
         if not in_uptrend:
+            logger.debug(f"高位缩量上涨: 不在上涨趋势中 (涨幅: {price_change:.2%}, 需要 > 10%)")
             return {'detected': False}
 
         # 检查最近10个交易日的价格和成交量趋势
@@ -312,6 +324,8 @@ class PriceVolumeSignals:
 
         # 只有在创新高的情况下才认为是有效信号
         detected = detected and is_new_high
+        
+        logger.debug(f"高位缩量上涨详情: 价格上涨={price_slope > 0}, 成交量下降={volume_slope < 0}, 创新高={is_new_high}, 检测结果={detected}")
 
         return {
             'detected': detected,
