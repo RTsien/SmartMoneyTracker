@@ -400,6 +400,7 @@ const tickerNameMap = {
     '9618.HK': '京东集团',
     '3690.HK': '美团',
     '2097.HK': '蜜雪冰城',
+    '1810.HK': '小米集团',
     '6862.HK': '海底捞',
     '2150.HK': '奈雪的茶',
     '2555.HK': '茶百道',
@@ -441,6 +442,12 @@ async function autoAnalyzeBatch() {
         'PDD',        // 拼多多
         'NVDA',       // 英伟达
         '2097.HK',    // 蜜雪冰城
+        '1810.HK',    // 小米集团
+        'AAPL',       // 苹果
+        'MSFT',       // 微软
+        'META',       // Meta
+        'AMZN',       // 亚马逊
+        'TSLA',       // 特斯拉
         'AMD',        // AMD
         'GOOGL'       // 谷歌
     ];
