@@ -25,6 +25,7 @@
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-attachment: fixed;
     color: var(--text-primary);
     line-height: 1.6;
     min-height: 100vh;
@@ -71,17 +72,21 @@ body {
 
 /* Header */
 .header {
-    background: var(--card-bg);
-    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 16px;
     padding: 30px;
     margin-bottom: 30px;
-    box-shadow: var(--shadow-lg);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.5);
     text-align: center;
 }
 
 .header-content h1 {
     font-size: 2.5rem;
-    color: var(--primary-color);
+    color: #ffffff;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
     margin-bottom: 10px;
     display: flex;
     align-items: center;
@@ -90,7 +95,8 @@ body {
 }
 
 .subtitle {
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
     font-size: 1.1rem;
 }
 
@@ -102,14 +108,18 @@ body {
 
 /* Card */
 .card {
-    background: var(--card-bg);
-    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 16px;
     padding: 30px;
-    box-shadow: var(--shadow-lg);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.5);
 }
 
 .card h2 {
-    color: var(--text-primary);
+    color: #ffffff;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
     margin-bottom: 25px;
     display: flex;
     align-items: center;
@@ -118,7 +128,8 @@ body {
 }
 
 .card h3 {
-    color: var(--text-primary);
+    color: #ffffff;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
     margin: 25px 0 15px;
     font-size: 1.2rem;
 }
@@ -139,22 +150,31 @@ label {
     display: block;
     margin-bottom: 8px;
     font-weight: 600;
-    color: var(--text-primary);
+    color: rgba(255, 255, 255, 0.95);
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .input-field {
     width: 100%;
     padding: 12px 16px;
-    border: 2px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
     border-radius: 8px;
     font-size: 1rem;
+    color: #ffffff;
     transition: all 0.3s ease;
+}
+
+.input-field::placeholder {
+    color: rgba(255, 255, 255, 0.6);
 }
 
 .input-field:focus {
     outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    background: rgba(255, 255, 255, 0.35);
+    border-color: rgba(255, 255, 255, 0.6);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
 }
 
 textarea.input-field {
@@ -165,7 +185,7 @@ textarea.input-field {
 .help-text {
     display: block;
     margin-top: 5px;
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.7);
     font-size: 0.875rem;
 }
 
@@ -175,6 +195,7 @@ textarea.input-field {
     gap: 10px;
     cursor: pointer;
     font-weight: normal;
+    color: rgba(255, 255, 255, 0.95);
 }
 
 .checkbox-label input[type="checkbox"] {
@@ -198,36 +219,42 @@ textarea.input-field {
 }
 
 .btn-primary {
-    background: var(--primary-color);
+    background: rgba(37, 99, 235, 0.8);
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     color: white;
 }
 
 .btn-primary:hover {
-    background: #1d4ed8;
+    background: rgba(29, 78, 216, 0.9);
     transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
 }
 
 .btn-secondary {
-    background: var(--secondary-color);
+    background: rgba(124, 58, 237, 0.8);
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     color: white;
 }
 
 .btn-secondary:hover {
-    background: #6d28d9;
+    background: rgba(109, 40, 217, 0.9);
     transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
 }
 
 .btn-small {
     padding: 8px 16px;
     font-size: 0.875rem;
-    background: var(--danger-color);
+    background: rgba(239, 68, 68, 0.8);
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     color: white;
 }
 
 .btn-small:hover {
-    background: #dc2626;
+    background: rgba(220, 38, 38, 0.9);
 }
 
 .btn:disabled {
@@ -240,7 +267,7 @@ textarea.input-field {
 .batch-section {
     margin-top: 30px;
     padding-top: 30px;
-    border-top: 2px solid var(--border-color);
+    border-top: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 /* Results Section */
@@ -257,18 +284,21 @@ textarea.input-field {
     align-items: center;
     margin-bottom: 30px;
     padding: 20px;
-    background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
     border-radius: 12px;
 }
 
 .ticker-info h3 {
     font-size: 2rem;
-    color: var(--primary-color);
+    color: #ffffff;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
     margin: 0;
 }
 
 .timestamp {
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.7);
     font-size: 0.875rem;
 }
 
@@ -288,22 +318,24 @@ textarea.input-field {
     align-items: center;
     justify-content: center;
     font-weight: bold;
-    box-shadow: var(--shadow-lg);
+    backdrop-filter: blur(15px);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.5);
     position: relative;
 }
 
 .score-circle.positive {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: rgba(16, 185, 129, 0.4);
     color: white;
 }
 
 .score-circle.negative {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    background: rgba(239, 68, 68, 0.4);
     color: white;
 }
 
 .score-circle.neutral {
-    background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+    background: rgba(148, 163, 184, 0.4);
     color: white;
 }
 
@@ -323,30 +355,32 @@ textarea.input-field {
     font-size: 1.1rem;
     text-align: center;
     min-width: 150px;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .rating-badge.STRONG_BUY {
-    background: var(--success-color);
+    background: rgba(16, 185, 129, 0.8);
     color: white;
 }
 
 .rating-badge.BUY {
-    background: #34d399;
+    background: rgba(52, 211, 153, 0.8);
     color: white;
 }
 
 .rating-badge.NEUTRAL {
-    background: var(--text-secondary);
+    background: rgba(100, 116, 139, 0.8);
     color: white;
 }
 
 .rating-badge.SELL {
-    background: var(--warning-color);
+    background: rgba(245, 158, 11, 0.8);
     color: white;
 }
 
 .rating-badge.STRONG_SELL {
-    background: var(--danger-color);
+    background: rgba(239, 68, 68, 0.8);
     color: white;
 }
 
@@ -364,7 +398,10 @@ textarea.input-field {
     display: flex;
     align-items: center;
     gap: 15px;
-    box-shadow: var(--shadow);
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 4px 16px 0 rgba(31, 38, 135, 0.3);
 }
 
 .signal-stat i {
@@ -372,42 +409,43 @@ textarea.input-field {
 }
 
 .signal-stat.inflow {
-    background: linear-gradient(135deg, #10b98115 0%, #05966915 100%);
-    border-left: 4px solid var(--success-color);
+    background: rgba(16, 185, 129, 0.25);
+    border-left: 4px solid rgba(16, 185, 129, 1);
 }
 
 .signal-stat.inflow i {
-    color: var(--success-color);
+    color: rgba(16, 185, 129, 1);
 }
 
 .signal-stat.outflow {
-    background: linear-gradient(135deg, #ef444415 0%, #dc262615 100%);
-    border-left: 4px solid var(--danger-color);
+    background: rgba(239, 68, 68, 0.25);
+    border-left: 4px solid rgba(239, 68, 68, 1);
 }
 
 .signal-stat.outflow i {
-    color: var(--danger-color);
+    color: rgba(239, 68, 68, 1);
 }
 
 .signal-stat.total {
-    background: linear-gradient(135deg, #3b82f615 0%, #2563eb15 100%);
-    border-left: 4px solid var(--info-color);
+    background: rgba(59, 130, 246, 0.25);
+    border-left: 4px solid rgba(59, 130, 246, 1);
 }
 
 .signal-stat.total i {
-    color: var(--info-color);
+    color: rgba(59, 130, 246, 1);
 }
 
 .stat-value {
     display: block;
     font-size: 2rem;
     font-weight: bold;
-    color: var(--text-primary);
+    color: #ffffff;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .stat-label {
     display: block;
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.8);
     font-size: 0.875rem;
 }
 
@@ -422,20 +460,24 @@ textarea.input-field {
 .signals-column {
     padding: 20px;
     border-radius: 12px;
-    background: #f8fafc;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
 .signals-title {
     margin: 0 0 15px 0;
     padding-bottom: 10px;
-    border-bottom: 2px solid var(--border-color);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
     display: flex;
     align-items: center;
     gap: 8px;
+    color: #ffffff;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .inflow-title {
-    color: var(--success-color);
+    color: rgba(16, 185, 129, 1);
 }
 
 .outflow-title {
