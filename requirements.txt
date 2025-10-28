@@ -7,3 +7,12 @@ yfinance>=0.2.0
 matplotlib>=3.6.0
 plotly>=5.11.0
 python-dotenv>=0.21.0
+
+# Web Interface Dependencies
+Flask>=2.3.0
+Flask-CORS>=4.0.0
+
+# Testing Dependencies (Optional)
+pytest>=7.4.0
+pytest-cov>=4.1.0
+coverage>=7.3.0

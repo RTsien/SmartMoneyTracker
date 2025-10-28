@@ -69,6 +69,136 @@ class DataFetcher:
             # 默认认为是美股
             return 'US_STOCK'
 
+    def get_stock_name(self, ticker: str) -> str:
+        """
+        获取股票中文名称
+
+        Args:
+            ticker: 股票代码
+
+        Returns:
+            股票中文名称，如果获取失败返回股票代码本身
+        """
+        market = self._detect_market(ticker)
+        
+        try:
+            if market == 'A_STOCK':
+                # A股：使用 AkShare 或 Tushare
+                return self._get_a_stock_name(ticker)
+            elif market == 'HK_STOCK':
+                # 港股：使用 yfinance 或 AkShare
+                return self._get_hk_stock_name(ticker)
+            else:
+                # 美股：使用 yfinance
+                return self._get_us_stock_name(ticker)
+        except Exception as e:
+            logger.warning(f"获取 {ticker} 名称失败: {e}")
+            return ticker
+
+    def _get_a_stock_name(self, ticker: str) -> str:
+        """获取A股名称"""
+        try:
+            if self.akshare_available:
+                # 转换代码格式：600519.SH -> 600519
+                code = ticker.split('.')[0]
+                # 获取股票信息
+                stock_info = self.ak.stock_individual_info_em(symbol=code)
+                if not stock_info.empty:
+                    name = stock_info[stock_info['item'] == '股票简称']['value'].values
+                    if len(name) > 0:
+                        return name[0]
+        except Exception as e:
+            logger.debug(f"AkShare 获取A股名称失败: {e}")
+        
+        # 备用：使用 Tushare
+        if self.ts_api:
+            try:
+                # 转换代码格式：600519.SH -> 600519.SH
+                df = self.ts_api.stock_basic(ts_code=ticker, fields='ts_code,name')
+                if not df.empty:
+                    return df.iloc[0]['name']
+            except Exception as e:
+                logger.debug(f"Tushare 获取A股名称失败: {e}")
+        
+        return ticker
+
+    def _get_hk_stock_name(self, ticker: str) -> str:
+        """获取港股名称"""
+        try:
+            import yfinance as yf
+            stock = yf.Ticker(ticker)
+            info = stock.info
+            
+            # 尝试获取中文名称
+            if 'longName' in info and info['longName']:
+                name = info['longName']
+                # 如果名称中包含中文，直接返回
+                if any('\u4e00' <= c <= '\u9fff' for c in name):
+                    return name
+                # 否则尝试从 shortName 获取
+                if 'shortName' in info and info['shortName']:
+                    return info['shortName']
+                return name
+        except Exception as e:
+            logger.debug(f"yfinance 获取港股名称失败: {e}")
+        
+        # 备用：使用 AkShare
+        if self.akshare_available:
+            try:
+                code = ticker.replace('.HK', '')
+                # 去掉前导零
+                code = code.lstrip('0')
+                df = self.ak.stock_hk_spot_em()
+                stock_data = df[df['代码'] == code]
+                if not stock_data.empty:
+                    return stock_data.iloc[0]['名称']
+            except Exception as e:
+                logger.debug(f"AkShare 获取港股名称失败: {e}")
+        
+        return ticker
+
+    def _get_us_stock_name(self, ticker: str) -> str:
+        """获取美股名称"""
+        try:
+            import yfinance as yf
+            stock = yf.Ticker(ticker)
+            info = stock.info
+            
+            # 美股名称映射表（常见公司的中文名）
+            us_name_map = {
+                'AAPL': '苹果',
+                'MSFT': '微软',
+                'GOOGL': '谷歌',
+                'GOOG': '谷歌',
+                'AMZN': '亚马逊',
+                'TSLA': '特斯拉',
+                'META': 'Meta',
+                'NVDA': '英伟达',
+                'AMD': '超威半导体',
+                'NFLX': '奈飞',
+                'PDD': '拼多多',
+                'BABA': '阿里巴巴',
+                'JD': '京东',
+                'BIDU': '百度',
+                'NIO': '蔚来',
+                'XPEV': '小鹏汽车',
+                'LI': '理想汽车'
+            }
+            
+            # 如果在映射表中，返回中文名
+            if ticker in us_name_map:
+                return us_name_map[ticker]
+            
+            # 否则返回英文名称
+            if 'longName' in info and info['longName']:
+                return info['longName']
+            elif 'shortName' in info and info['shortName']:
+                return info['shortName']
+        except Exception as e:
+            logger.debug(f"yfinance 获取美股名称失败: {e}")
+        
+        return ticker
+
     def get_daily_data(
         self,
         ticker: str,

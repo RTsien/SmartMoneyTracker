@@ -43,9 +43,28 @@ smartmoney_tracker.log
 cache/
 *.cache
 
+# Temporary files
+*.tmp
+*.bak
+
+# Intermediate documentation (cleaned up)
+WEB_INTERFACE_SUMMARY.md
+WEB_FEATURE_COMPLETE.md
+TESTING_SUMMARY.md
+QUICKSTART_WEB.md
+INSTALLATION.md
+WEB_INTERFACE.md
+ARCHITECTURE.md
+DEPLOYMENT_SUMMARY.md
+QUICKSTART.md
+
 # Reports
 reports/
-*.html
+reports/*.html
+
+# Allow templates
+!templates/*.html
+!templates/**/*.html
 
 # Data
 *.csv

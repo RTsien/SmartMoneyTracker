@@ -115,7 +115,40 @@ cp config.example.py config.py
 # 编辑 config.py 添加您的 API 密钥
 ```
 
-### 使用示例
+### 使用方式
+
+#### 方式一：Docker 部署（推荐）🐳
+
+```bash
+# 使用 Docker Compose
+docker-compose up -d
+
+# 在浏览器中访问
+# http://localhost:8001
+```
+
+详细说明请查看：[Docker 部署文档](DOCKER.md)
+
+#### 方式二：Web 界面 🌐
+
+```bash
+# 启动 Web 服务
+python app.py
+
+# 在浏览器中访问
+# http://localhost:8001
+```
+
+**Web 界面特性**：
+- 🎨 现代化的用户界面
+- 📊 实时分析结果展示
+- 📈 可视化评分和信号
+- 🔄 支持单股和批量分析
+- 📱 响应式设计，支持移动设备
+
+详细使用说明请查看 Web 界面的在线帮助
+
+#### 方式二：命令行
 
 ```python
 from main import SmartMoneyScanner
@@ -332,8 +365,26 @@ A_STOCK_DATA_SOURCE=tushare python3 main.py 600519.SH
 - [ ] 数据缓存机制
 - [ ] 并发处理优化
 - [ ] 实时监控模式
-- [ ] Web 界面
+- [x] Web 界面 ✅
+- [x] 单元测试 ✅
 - [ ] 回测系统
+
+## 🧪 测试
+
+运行所有测试：
+
+```bash
+# 使用快捷脚本
+./run_tests.sh
+
+# 或直接运行
+python3 tests/run_tests.py
+
+# 运行特定测试
+python3 -m unittest tests.test_app
+```
+
+详细测试文档请查看：[tests/TESTING.md](tests/TESTING.md)
 
 ## 🤝 贡献指南
 
@@ -342,8 +393,9 @@ A_STOCK_DATA_SOURCE=tushare python3 main.py 600519.SH
 1. Fork 本项目
 2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
 3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
+4. 运行测试确保通过 (`./run_tests.sh`)
+5. 推送到分支 (`git push origin feature/AmazingFeature`)
+6. 开启 Pull Request
 
 ## ⚠️ 免责声明
 

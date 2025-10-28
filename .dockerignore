@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Reports and data
+reports/*.html
+data/
+*.csv
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.local
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Documentation (keep only essential docs)
+WEB_INTERFACE_SUMMARY.md
+WEB_FEATURE_COMPLETE.md
+TESTING_SUMMARY.md
+
+# Temporary files
+*.tmp
+*.bak

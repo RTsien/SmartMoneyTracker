@@ -53,7 +53,9 @@ class SignalAggregator:
                 'triggered_signals': {},
                 'signal_count': 0,
                 'inflow_signals': {},
-                'outflow_signals': {}
+                'outflow_signals': {},
+                'inflow_count': 0,
+                'outflow_count': 0
             }
 
         total_score = 0

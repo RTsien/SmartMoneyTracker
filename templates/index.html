@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartMoneyTracker - 聪明钱追踪系统</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-chart-line"></i> SmartMoneyTracker</h1>
+                <p class="subtitle">追踪"聪明钱"的足迹 - 机构资金进出场全周期识别系统</p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Analysis Form -->
+            <section class="analysis-section">
+                <div class="card">
+                    <h2><i class="fas fa-search"></i> 股票分析</h2>
+                    
+                    <!-- Single Stock Analysis -->
+                    <div class="form-group">
+                        <label for="ticker">股票代码</label>
+                        <input type="text" id="ticker" placeholder="例如: 600519.SH, AAPL, 0700.HK" class="input-field">
+                        <small class="help-text">支持 A股、美股、港股</small>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="period">回看天数</label>
+                            <select id="period" class="input-field">
+                                <option value="60">60天</option>
+                                <option value="120">120天</option>
+                                <option value="250" selected>250天</option>
+                                <option value="500">500天</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="analyze_structure" checked>
+                                <span>启用结构性信号分析</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <button id="analyzeBtn" class="btn btn-primary">
+                        <i class="fas fa-chart-bar"></i> 开始分析
+                    </button>
+
+                    <!-- Batch Analysis -->
+                    <div class="batch-section">
+                        <h3><i class="fas fa-layer-group"></i> 批量分析</h3>
+                        <div class="form-group">
+                            <label for="batch_tickers">股票代码列表 (每行一个)</label>
+                            <textarea id="batch_tickers" rows="4" placeholder="600519.SH&#10;000858.SZ&#10;AAPL" class="input-field"></textarea>
+                        </div>
+                        <button id="batchAnalyzeBtn" class="btn btn-secondary">
+                            <i class="fas fa-list"></i> 批量分析
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section class="results-section" id="resultsSection" style="display: none;">
+                <div class="card">
+                    <div class="results-header">
+                        <h2><i class="fas fa-chart-pie"></i> 分析结果</h2>
+                        <button id="clearBtn" class="btn btn-small">
+                            <i class="fas fa-times"></i> 清除
+                        </button>
+                    </div>
+
+                    <!-- Single Result -->
+                    <div id="singleResult" style="display: none;">
+                        <div class="result-summary">
+                            <div class="ticker-info">
+                                <h3 id="resultTicker"></h3>
+                                <span id="resultTimestamp" class="timestamp"></span>
+                            </div>
+                            
+                            <div class="score-display">
+                                <div class="score-circle" id="scoreCircle">
+                                    <span class="score-value" id="scoreValue">0</span>
+                                    <span class="score-max">/10</span>
+                                </div>
+                                <div class="rating-badge" id="ratingBadge"></div>
+                            </div>
+                        </div>
+
+                        <div class="signals-overview">
+                            <div class="signal-stat inflow">
+                                <i class="fas fa-arrow-up"></i>
+                                <div>
+                                    <span class="stat-value" id="inflowCount">0</span>
+                                    <span class="stat-label">进场信号</span>
+                                </div>
+                            </div>
+                            <div class="signal-stat outflow">
+                                <i class="fas fa-arrow-down"></i>
+                                <div>
+                                    <span class="stat-value" id="outflowCount">0</span>
+                                    <span class="stat-label">离场信号</span>
+                                </div>
+                            </div>
+                            <div class="signal-stat total">
+                                <i class="fas fa-signal"></i>
+                                <div>
+                                    <span class="stat-value" id="totalCount">0</span>
+                                    <span class="stat-label">总信号数</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Signals Details -->
+                        <div class="signals-details">
+                            <div class="signals-column">
+                                <h4 class="signals-title inflow-title">
+                                    <i class="fas fa-arrow-trend-up"></i> 进场信号 (吸筹)
+                                </h4>
+                                <div id="inflowSignals" class="signals-list"></div>
+                            </div>
+
+                            <div class="signals-column">
+                                <h4 class="signals-title outflow-title">
+                                    <i class="fas fa-arrow-trend-down"></i> 离场信号 (派发)
+                                </h4>
+                                <div id="outflowSignals" class="signals-list"></div>
+                            </div>
+                        </div>
+
+                        <!-- Recommendation -->
+                        <div class="recommendation-box" id="recommendationBox">
+                            <h4><i class="fas fa-lightbulb"></i> 投资建议</h4>
+                            <p id="recommendationText"></p>
+                        </div>
+
+                        <!-- Full Report -->
+                        <details class="report-details">
+                            <summary><i class="fas fa-file-alt"></i> 查看完整报告</summary>
+                            <pre id="fullReport" class="report-content"></pre>
+                        </details>
+                    </div>
+
+                    <!-- Batch Results -->
+                    <div id="batchResults" style="display: none;">
+                        <div class="batch-summary">
+                            <p>分析完成 <strong id="batchCount">0</strong> 只股票</p>
+                        </div>
+                        <div id="batchResultsList" class="batch-list"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Loading Indicator -->
+            <div id="loadingIndicator" class="loading-overlay" style="display: none;">
+                <div class="loading-spinner">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>正在分析中...</p>
+                </div>
+            </div>
+
+            <!-- Error Message -->
+            <div id="errorMessage" class="error-message" style="display: none;">
+                <i class="fas fa-exclamation-circle"></i>
+                <span id="errorText"></span>
+                <button class="close-btn" onclick="hideError()">×</button>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>
+                <i class="fas fa-info-circle"></i> 
+                本工具仅供学习和研究目的，不构成任何投资建议。投资有风险，决策需谨慎。
+            </p>
+            <p class="footer-links">
+                <a href="https://github.com/rtsien/SmartMoneyTracker" target="_blank">
+                    <i class="fab fa-github"></i> GitHub
+                </a>
+            </p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

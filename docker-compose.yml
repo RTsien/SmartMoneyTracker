@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  smartmoneytracker:
+    build: .
+    container_name: smartmoneytracker
+    ports:
+      - "8001:8001"
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      # 挂载配置文件（可选）
+      - ./config.py:/app/config.py:ro
+      # 挂载环境变量文件（如果有）
+      - ./.env:/app/.env:ro
+      # 挂载数据目录（持久化）
+      - ./data:/app/data
+      - ./reports:/app/reports
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8001/api/config')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
