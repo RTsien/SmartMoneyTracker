@@ -95,12 +95,32 @@ SmartMoneyTracker/
 
 ## 🚀 快速开始
 
-### 前置要求
+### Docker 部署（推荐）🐳
+
+使用 Docker 一键部署，无需配置环境：
+
+```bash
+# 克隆项目
+git clone https://github.com/yourusername/SmartMoneyTracker.git
+cd SmartMoneyTracker
+
+# 启动服务
+docker-compose up -d
+
+# 在浏览器中访问
+# http://localhost:8001
+```
+
+详细说明请查看：[Docker 部署文档](DOCKER.md)
+
+### 本地安装
+
+#### 前置要求
 
 - Python 3.9+
 - pip 包管理器
 
-### 安装
+#### 安装步骤
 
 ```bash
 # 克隆项目
@@ -110,26 +130,14 @@ cd SmartMoneyTracker
 # 安装依赖
 pip install -r requirements.txt
 
-# 配置 API 密钥
+# 配置 API 密钥（可选）
 cp config.example.py config.py
 # 编辑 config.py 添加您的 API 密钥
 ```
 
 ### 使用方式
 
-#### 方式一：Docker 部署（推荐）🐳
-
-```bash
-# 使用 Docker Compose
-docker-compose up -d
-
-# 在浏览器中访问
-# http://localhost:8001
-```
-
-详细说明请查看：[Docker 部署文档](DOCKER.md)
-
-#### 方式二：Web 界面 🌐
+#### 方式一：Web 界面 🌐
 
 ```bash
 # 启动 Web 服务
@@ -145,8 +153,6 @@ python app.py
 - 📈 可视化评分和信号
 - 🔄 支持单股和批量分析
 - 📱 响应式设计，支持移动设备
-
-详细使用说明请查看 Web 界面的在线帮助
 
 #### 方式二：命令行
 
@@ -254,12 +260,6 @@ Recommendation:
   - 北向资金: **AkShare (默认)**, Tushare (hk_hold)
   - 南向资金: Eastmoney API
 - **公告新闻**: 巨潮资讯网、交易所官网
-
-> **重要更新**: 
-> - ✅ 系统默认使用 **AkShare** 作为 A股数据源（**无需 Token，开箱即用**）
-> - ✅ 智能降级机制：AkShare 失败时自动切换到 Tushare
-> - ✅ 港美股机构持股数据已实现（通过 yfinance）
-> - ✅ 可通过环境变量 `A_STOCK_DATA_SOURCE` 手动切换数据源
 
 ## 🔧 配置说明
 
