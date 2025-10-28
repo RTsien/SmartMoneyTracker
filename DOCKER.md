@@ -245,7 +245,7 @@ logging:
 ## 🆘 获取帮助
 
 - 查看 [README.md](README.md) 了解项目详情
-- 查看 [TESTING.md](TESTING.md) 了解测试
+- 查看 [tests/TESTING.md](tests/TESTING.md) 了解测试
 - 提交 Issue: https://github.com/rtsien/SmartMoneyTracker/issues
 
 ---

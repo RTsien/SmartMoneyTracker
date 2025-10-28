@@ -99,7 +99,16 @@ class ReportGenerator:
                 # 详细信息
                 if 'details' in data and data['details']:
                     for key, value in data['details'].items():
-                        if key not in ['reductions', 'broken_supports']:
+                        # 显示所有详细信息，包括 debug 数据
+                        if isinstance(value, (list, dict)):
+                            report_lines.append(f"        • {key}:")
+                            if isinstance(value, list):
+                                for item in value:
+                                    report_lines.append(f"            - {item}")
+                            else:
+                                for k, v in value.items():
+                                    report_lines.append(f"            - {k}: {v}")
+                        else:
                             report_lines.append(f"        • {key}: {value}")
 
                 report_lines.append("")
@@ -131,7 +140,16 @@ class ReportGenerator:
                 # 详细信息
                 if 'details' in data and data['details']:
                     for key, value in data['details'].items():
-                        if key not in ['reductions', 'broken_supports']:
+                        # 显示所有详细信息，包括 debug 数据
+                        if isinstance(value, (list, dict)):
+                            report_lines.append(f"        • {key}:")
+                            if isinstance(value, list):
+                                for item in value:
+                                    report_lines.append(f"            - {item}")
+                            else:
+                                for k, v in value.items():
+                                    report_lines.append(f"            - {k}: {v}")
+                        else:
                             report_lines.append(f"        • {key}: {value}")
 
                 report_lines.append("")
