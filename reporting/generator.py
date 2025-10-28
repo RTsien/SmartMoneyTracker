@@ -55,6 +55,23 @@ class ReportGenerator:
         # 基本信息
         report_lines.append(f"股票代码: {ticker}")
         report_lines.append(f"分析时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        
+        # 数据信息
+        data_info = score_result.get('data_info', {})
+        if data_info:
+            report_lines.append("")
+            report_lines.append("-" * 70)
+            report_lines.append("数据概览:")
+            report_lines.append("-" * 70)
+            if 'record_count' in data_info:
+                report_lines.append(f"数据记录数: {data_info['record_count']} 条")
+            if 'date_range' in data_info:
+                report_lines.append(f"数据区间: {data_info['date_range']}")
+            if 'first_date' in data_info and 'first_open' in data_info and 'first_close' in data_info:
+                report_lines.append(f"起始日期: {data_info['first_date']} (开盘={data_info['first_open']:.2f}, 收盘={data_info['first_close']:.2f})")
+            if 'last_date' in data_info and 'last_open' in data_info and 'last_close' in data_info:
+                report_lines.append(f"最新日期: {data_info['last_date']} (开盘={data_info['last_open']:.2f}, 收盘={data_info['last_close']:.2f})")
+        
         report_lines.append("")
 
         # 综合评分 (双向)

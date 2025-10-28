@@ -80,12 +80,26 @@ class SmartMoneyScanner:
                     'error': '无法获取数据'
                 }
 
-            # 打印数据概览
+            # 打印数据概览并保存数据信息
             first_row = df.iloc[0]
             last_row = df.iloc[-1]
             logger.info(f"  获取到 {len(df)} 条数据记录")
             logger.info(f"  {first_row['date'].strftime('%Y-%m-%d') if 'date' in df.columns else '日期未知'} 开盘={first_row['open']:.2f} 收盘={first_row['close']:.2f}")
             logger.info(f"  {last_row['date'].strftime('%Y-%m-%d') if 'date' in df.columns else '日期未知'} 开盘={last_row['open']:.2f} 收盘={last_row['close']:.2f}")
+            
+            # 保存数据信息用于报告
+            first_date_str = first_row['date'].strftime('%Y%m%d') if 'date' in df.columns else '未知'
+            last_date_str = last_row['date'].strftime('%Y%m%d') if 'date' in df.columns else '未知'
+            data_info = {
+                'record_count': len(df),
+                'date_range': f"{first_date_str} 至 {last_date_str}",
+                'first_date': first_row['date'].strftime('%Y-%m-%d') if 'date' in df.columns else '未知',
+                'first_open': float(first_row['open']),
+                'first_close': float(first_row['close']),
+                'last_date': last_row['date'].strftime('%Y-%m-%d') if 'date' in df.columns else '未知',
+                'last_open': float(last_row['open']),
+                'last_close': float(last_row['close'])
+            }
 
             # 2. 计算技术指标
             logger.info("步骤 2/5: 计算技术指标...")
@@ -132,6 +146,9 @@ class SmartMoneyScanner:
             }
 
             score_result = self.signal_aggregator.calculate_score(all_signals)
+            
+            # 添加数据信息到结果中
+            score_result['data_info'] = data_info
 
             # 8. 生成建议
             rating = score_result['rating']
