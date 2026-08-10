@@ -4,7 +4,7 @@
 
 > 追踪"聪明钱"的足迹：基于多维度分析的机构资金进出场全周期识别系统
 
-[![Python Version](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 ## 📋 项目简介
@@ -65,6 +65,13 @@ SmartMoneyTracker 是一个模块化的 Python 应用程序，用于自动化扫
   - **-10 到 -6**：STRONG_SELL（强烈卖出）- 强烈派发信号
 - 人类可读的分析报告
 
+### AkQuant 指标引擎
+
+- 使用 [AkQuant](https://github.com/akfamily/akquant) 作为量化计算基础库
+- 默认通过 Rust 后端计算 SMA、OBV、RSI、MACD 和 MFI
+- 可配置 `rust`、`python` 或 `auto` TA-Lib 兼容后端
+- 行情获取层保持独立，因为 AkQuant 是策略与回测框架，不是行情数据源
+
 ## 🏗️ 系统架构
 
 ```
@@ -89,6 +96,10 @@ SmartMoneyTracker/
 ├── aggregator/                     # 信号聚合层
 │   ├── __init__.py
 │   └── scorer.py                  # 信号计分与综合评级
+│
+├── quant_engine/                  # 量化计算层
+│   ├── __init__.py
+│   └── akquant_adapter.py         # AkQuant 指标适配器
 │
 └── reporting/                      # 报告生成层
     ├── __init__.py
@@ -119,7 +130,7 @@ docker-compose up -d
 
 #### 前置要求
 
-- Python 3.9+
+- Python 3.10+
 - pip 包管理器
 
 #### 安装步骤
@@ -241,25 +252,25 @@ Recommendation:
 
 | 市场 | 数据源 | 核心特色 |
 |------|--------|----------|
-| **A股** | **AkShare (默认)**, Tushare | 北向资金监控、十大股东分析、股东户数分析 |
+| **A股** | **AkShare（默认腾讯行情，东方财富备用）**, Tushare | 北向资金监控、十大股东分析、股东户数分析 |
 | **美股** | yfinance | 机构持股数据、日线行情数据 |
 | **港股** | yfinance, AkShare | 机构持股数据、港股通持股数据 |
 
 ## 📈 数据来源
 
 - **日线行情**: 
-  - A股: **AkShare (默认)**, Tushare
+  - A股: **AkShare 腾讯接口（默认）或东方财富接口**, Tushare 兜底
   - 美股/港股: yfinance
 - **Level-2 数据** ⚠️ **未实现（需商业接口）**: 东方财富 Choice、万得等商业数据提供商
   - 费用：数千至数万元/年
   - 用途：微观结构信号（买单墙、卖盘压单检测）
   - 说明：架构已预留接口，有数据源时可直接扩展
 - **机构持仓**:
-  - A股: **AkShare (默认)**, Tushare (top10_holders, stk_holdernumber)
+  - A股: **AkShare**, Tushare (top10_holders, stk_holdernumber)
   - 美股: **yfinance (已实现)** - 机构持股者数据
   - 港股: **yfinance + AkShare (已实现)** - 双数据源支持
 - **资金流向**:
-  - 北向资金: **AkShare (默认)**, Tushare (hk_hold)
+  - 北向资金: **AkShare**, Tushare (hk_hold)
   - 南向资金: Eastmoney API
 - **公告新闻**: 巨潮资讯网、交易所官网
 
@@ -271,7 +282,12 @@ Recommendation:
 # 数据源配置
 A_STOCK_DATA_SOURCE = 'akshare'  # 可选: 'akshare' (默认), 'tushare'
 AKSHARE_ENABLED = True
+AKSHARE_HISTORY_SOURCE = 'tencent'  # 可选: 'tencent' (默认), 'eastmoney'
 TUSHARE_TOKEN = "your_token_here"  # 仅在使用 Tushare 时需要
+
+# 量化计算引擎
+QUANT_ENGINE = 'akquant'             # 可选: 'akquant' (默认), 'native'
+AKQUANT_TALIB_BACKEND = 'rust'       # 可选: 'rust', 'python', 'auto'
 
 # 股票池
 STOCK_POOL = [
@@ -310,6 +326,9 @@ VOL_MULTIPLIER = 2.0   # 放量倍数
 ```bash
 # 使用 AkShare (默认，无需 Token)
 python3 main.py 600519.SH
+
+# 将历史行情从默认腾讯接口切换为东方财富接口
+AKSHARE_HISTORY_SOURCE=eastmoney python3 main.py 600519.SH
 
 # 使用 Tushare (需要配置 TUSHARE_TOKEN)
 A_STOCK_DATA_SOURCE=tushare python3 main.py 600519.SH
@@ -414,7 +433,7 @@ python3 -m unittest tests.test_app
 
 ## 🙏 致谢
 
-- 感谢 Tushare、AkShare 等开源数据接口项目
+- 感谢 AkQuant、Tushare、AkShare 等开源项目
 - 理论框架参考了大量学术研究和市场实践
 - 感谢所有贡献者的支持
 

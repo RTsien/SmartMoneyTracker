@@ -6,6 +6,9 @@
 import unittest
 import sys
 import os
+from unittest.mock import patch
+
+import pandas as pd
 
 # 添加项目根目录到路径
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -73,6 +76,38 @@ class TestDataFetcher(unittest.TestCase):
             name = self.fetcher._get_us_stock_name(ticker)
             self.assertEqual(name, expected_name,
                 f"美股 {ticker} 的中文名应该是 {expected_name}，但得到了 {name}")
+
+    def test_a_stock_history_falls_back_between_akshare_sources(self):
+        """东方财富失败后应回退到腾讯行情接口。"""
+        self.fetcher.akshare_history_source = 'eastmoney'
+        expected = pd.DataFrame({
+            'date': pd.to_datetime(['2026-08-07']),
+            'open': [1400.0],
+            'high': [1410.0],
+            'low': [1390.0],
+            'close': [1405.0],
+            'volume': [1000.0],
+            'amount': [1_405_000.0],
+        })
+
+        with patch.object(
+            self.fetcher,
+            '_get_a_stock_daily_akshare_eastmoney',
+            return_value=pd.DataFrame()
+        ) as eastmoney, patch.object(
+            self.fetcher,
+            '_get_a_stock_daily_akshare_tencent',
+            return_value=expected
+        ) as tencent:
+            result = self.fetcher._get_a_stock_daily_akshare(
+                '600519.SH',
+                '20260801',
+                '20260810'
+            )
+
+        eastmoney.assert_called_once()
+        tencent.assert_called_once()
+        pd.testing.assert_frame_equal(result, expected)
 
 
 class TestStockNameIntegration(unittest.TestCase):

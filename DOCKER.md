@@ -208,7 +208,7 @@ sudo certbot --nginx -d your-domain.com
 
 2. **定期更新基础镜像**
    ```bash
-   docker pull python:3.9-slim
+   docker pull python:3.12-slim
    docker-compose build --no-cache
    ```
 

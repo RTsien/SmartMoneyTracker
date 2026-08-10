@@ -183,7 +183,10 @@ def get_config():
             'success': True,
             'stock_pool': config.STOCK_POOL,
             'markets': list(config.MARKET_BENCHMARKS.keys()),
-            'data_source': config.A_STOCK_DATA_SOURCE
+            'data_source': config.A_STOCK_DATA_SOURCE,
+            'history_source': scanner.data_fetcher.akshare_history_source,
+            'quant_engine': scanner.data_fetcher.quant_engine_name,
+            'indicator_backend': scanner.data_fetcher.indicator_backend
         })
     except Exception as e:
         logger.error(f"获取配置错误: {e}", exc_info=True)

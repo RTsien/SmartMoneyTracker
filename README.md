@@ -4,7 +4,7 @@
 
 > Follow the smart money: identify the full institutional capital cycle—from accumulation to distribution—through multidimensional market analysis.
 
-[![Python Version](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 ## 📋 Overview
@@ -63,6 +63,13 @@ The system **does not rely on a single indicator**. Instead, it combines bidirec
   - **-10 to -6:** `STRONG_SELL` — strong distribution signals
 - Human-readable analysis reports
 
+### AKQuant-Powered Indicator Engine
+
+- [AKQuant](https://github.com/akfamily/akquant) provides the quantitative computation foundation
+- Rust-backed SMA, OBV, RSI, MACD, and MFI calculations by default
+- Configurable `rust`, `python`, or `auto` TA-Lib-compatible backend
+- The market-data layer remains independent because AKQuant is a strategy and backtesting framework, not a data provider
+
 ## 🏗️ Architecture
 
 ```text
@@ -89,6 +96,10 @@ SmartMoneyTracker/
 ├── aggregator/                    # Signal aggregation layer
 │   ├── __init__.py
 │   └── scorer.py                  # Scoring and composite ratings
+│
+├── quant_engine/                  # Quantitative computation layer
+│   ├── __init__.py
+│   └── akquant_adapter.py         # AKQuant indicator adapter
 │
 ├── reporting/                     # Reporting layer
 │   ├── __init__.py
@@ -120,7 +131,7 @@ For more information, see the [Docker deployment guide](DOCKER.md) *(Chinese)*.
 
 #### Requirements
 
-- Python 3.9 or later
+- Python 3.10 or later
 - pip
 
 #### Installation
@@ -247,25 +258,25 @@ Shares may be moving from retail investors to institutions.
 
 | Market | Data sources | Highlights |
 |---|---|---|
-| **Chinese A-shares** | **AkShare (default)**, Tushare | Northbound capital flows, top-ten shareholder analysis, and shareholder count analysis |
+| **Chinese A-shares** | **AkShare (Tencent default, Eastmoney fallback)**, Tushare | Northbound capital flows, top-ten shareholder analysis, and shareholder count analysis |
 | **US stocks** | yfinance | Institutional ownership and daily market data |
 | **Hong Kong stocks** | yfinance, AkShare | Institutional ownership and Stock Connect holdings |
 
 ## 📈 Data Sources
 
 - **Daily market data**
-  - Chinese A-shares: **AkShare (default)** or Tushare
+  - Chinese A-shares: **AkShare via Tencent (default) or Eastmoney**, with Tushare as a fallback
   - US and Hong Kong stocks: yfinance
 - **Level 2 data** ⚠️ **Not included; a commercial API is required**
   - Potential providers: Eastmoney Choice, Wind, and similar vendors
   - Use case: microstructure signals such as bid-wall and sell-wall detection
   - The architecture exposes extension points for a compatible data feed
 - **Institutional holdings**
-  - Chinese A-shares: **AkShare (default)** or Tushare (`top10_holders`, `stk_holdernumber`)
+  - Chinese A-shares: **AkShare** or Tushare (`top10_holders`, `stk_holdernumber`)
   - US stocks: **yfinance**
   - Hong Kong stocks: **yfinance and AkShare**
 - **Capital flows**
-  - Northbound flows: **AkShare (default)** or Tushare (`hk_hold`)
+  - Northbound flows: **AkShare** or Tushare (`hk_hold`)
   - Southbound flows: Eastmoney API
 - **Disclosures and news:** CNInfo and official exchange websites
 
@@ -277,7 +288,12 @@ Configure the application in `config.py`:
 # Data source
 A_STOCK_DATA_SOURCE = "akshare"  # "akshare" (default) or "tushare"
 AKSHARE_ENABLED = True
+AKSHARE_HISTORY_SOURCE = "tencent"  # "tencent" (default) or "eastmoney"
 TUSHARE_TOKEN = "your_token_here"  # Required only for Tushare
+
+# Quantitative computation
+QUANT_ENGINE = "akquant"             # "akquant" (default) or "native"
+AKQUANT_TALIB_BACKEND = "rust"       # "rust", "python", or "auto"
 
 # Stocks to scan
 STOCK_POOL = [
@@ -313,6 +329,9 @@ VOL_MULTIPLIER = 2.0
 ```bash
 # AkShare: the default; no token required
 python3 main.py 600519.SH
+
+# Use the Eastmoney history endpoint instead of the Tencent default
+AKSHARE_HISTORY_SOURCE=eastmoney python3 main.py 600519.SH
 
 # Tushare: requires TUSHARE_TOKEN
 A_STOCK_DATA_SOURCE=tushare python3 main.py 600519.SH
@@ -420,7 +439,7 @@ This project is licensed under the MIT License.
 
 ## 🙏 Acknowledgments
 
-- Thanks to the Tushare, AkShare, and other open-data communities.
+- Thanks to the AKQuant, Tushare, AkShare, and other open-source communities.
 - The methodology draws on academic research and market practice.
 - Thanks to everyone who has contributed to the project.
 

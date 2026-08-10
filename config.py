@@ -20,8 +20,21 @@ TUSHARE_TOKEN = os.getenv('TUSHARE_TOKEN', '')
 # AkShare 配置
 AKSHARE_ENABLED = True
 
+# A股历史行情来源。腾讯接口作为默认值，避免东方财富 push2 接口频繁断连。
+# 可选: 'tencent', 'eastmoney'
+AKSHARE_HISTORY_SOURCE = os.getenv('AKSHARE_HISTORY_SOURCE', 'tencent')
+
+# 外部数据请求超时（秒）
+DATA_REQUEST_TIMEOUT = float(os.getenv('DATA_REQUEST_TIMEOUT', '15'))
+
 # yfinance 配置 (美股/港股数据)
 YFINANCE_ENABLED = True
+
+# 量化计算引擎
+# QUANT_ENGINE 可选: 'akquant', 'native'
+# AKQUANT_TALIB_BACKEND 可选: 'rust', 'python', 'auto'
+QUANT_ENGINE = os.getenv('QUANT_ENGINE', 'akquant')
+AKQUANT_TALIB_BACKEND = os.getenv('AKQUANT_TALIB_BACKEND', 'rust')
 
 # =============================================================================
 # 股票池配置

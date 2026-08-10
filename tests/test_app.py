@@ -39,6 +39,9 @@ class TestFlaskAPI(unittest.TestCase):
         self.assertIn('stock_pool', data)
         self.assertIn('markets', data)
         self.assertIn('data_source', data)
+        self.assertEqual(data['quant_engine'], 'akquant')
+        self.assertEqual(data['indicator_backend'], 'rust')
+        self.assertIn(data['history_source'], {'tencent', 'eastmoney'})
 
     def test_format_signals_with_positive_weight(self):
         """测试格式化进场信号（正权重）"""

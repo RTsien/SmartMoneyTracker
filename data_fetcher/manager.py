@@ -27,9 +27,54 @@ class DataFetcher:
         """
         self.config = config
         self.data_source = getattr(config, 'A_STOCK_DATA_SOURCE', 'akshare')
+        self.akshare_history_source = getattr(
+            config,
+            'AKSHARE_HISTORY_SOURCE',
+            'tencent'
+        ).strip().lower()
+        if self.akshare_history_source not in {'tencent', 'eastmoney'}:
+            logger.warning(
+                "未知的 AKSHARE_HISTORY_SOURCE=%s，回退到 tencent",
+                self.akshare_history_source
+            )
+            self.akshare_history_source = 'tencent'
+
+        self.request_timeout = getattr(config, 'DATA_REQUEST_TIMEOUT', 15)
         self.tushare_token = config.TUSHARE_TOKEN
         self.ts_api = None
         self.akshare_available = False
+        self.indicator_engine = None
+        self.quant_engine_name = getattr(config, 'QUANT_ENGINE', 'akquant').strip().lower()
+        self.indicator_backend = getattr(
+            config,
+            'AKQUANT_TALIB_BACKEND',
+            'rust'
+        ).strip().lower()
+
+        if self.quant_engine_name == 'akquant':
+            try:
+                from quant_engine import AkQuantIndicatorEngine
+
+                self.indicator_engine = AkQuantIndicatorEngine(
+                    backend=self.indicator_backend
+                )
+                logger.info(
+                    "AkQuant 技术指标引擎初始化成功 (backend=%s)",
+                    self.indicator_backend
+                )
+            except Exception as e:
+                logger.warning("AkQuant 初始化失败，回退到原生指标实现: %s", e)
+                self.quant_engine_name = 'native'
+                self.indicator_backend = 'native'
+        elif self.quant_engine_name == 'native':
+            self.indicator_backend = 'native'
+        else:
+            logger.warning(
+                "未知的 QUANT_ENGINE=%s，回退到原生指标实现",
+                self.quant_engine_name
+            )
+            self.quant_engine_name = 'native'
+            self.indicator_backend = 'native'
 
         # 初始化 AkShare
         if config.AKSHARE_ENABLED:
@@ -159,36 +204,35 @@ class DataFetcher:
 
     def _get_us_stock_name(self, ticker: str) -> str:
         """获取美股名称"""
+        # 常用映射不依赖网络，避免 yfinance 限流导致名称回退为代码。
+        us_name_map = {
+            'AAPL': '苹果',
+            'MSFT': '微软',
+            'GOOGL': '谷歌',
+            'GOOG': '谷歌',
+            'AMZN': '亚马逊',
+            'TSLA': '特斯拉',
+            'META': 'Meta',
+            'NVDA': '英伟达',
+            'AMD': '超威半导体',
+            'NFLX': '奈飞',
+            'PDD': '拼多多',
+            'BABA': '阿里巴巴',
+            'JD': '京东',
+            'BIDU': '百度',
+            'NIO': '蔚来',
+            'XPEV': '小鹏汽车',
+            'LI': '理想汽车'
+        }
+
+        if ticker in us_name_map:
+            return us_name_map[ticker]
+
         try:
             import yfinance as yf
             stock = yf.Ticker(ticker)
             info = stock.info
-            
-            # 美股名称映射表（常见公司的中文名）
-            us_name_map = {
-                'AAPL': '苹果',
-                'MSFT': '微软',
-                'GOOGL': '谷歌',
-                'GOOG': '谷歌',
-                'AMZN': '亚马逊',
-                'TSLA': '特斯拉',
-                'META': 'Meta',
-                'NVDA': '英伟达',
-                'AMD': '超威半导体',
-                'NFLX': '奈飞',
-                'PDD': '拼多多',
-                'BABA': '阿里巴巴',
-                'JD': '京东',
-                'BIDU': '百度',
-                'NIO': '蔚来',
-                'XPEV': '小鹏汽车',
-                'LI': '理想汽车'
-            }
-            
-            # 如果在映射表中，返回中文名
-            if ticker in us_name_map:
-                return us_name_map[ticker]
-            
+
             # 否则返回英文名称
             if 'longName' in info and info['longName']:
                 return info['longName']
@@ -252,8 +296,85 @@ class DataFetcher:
         # 使用 Tushare
         return self._get_a_stock_daily_tushare(ticker, start_date, end_date)
 
-    def _get_a_stock_daily_akshare(self, ticker: str, start_date: str, end_date: str) -> pd.DataFrame:
-        """使用 AkShare 获取A股日线数据"""
+    def _get_a_stock_daily_akshare(
+        self,
+        ticker: str,
+        start_date: str,
+        end_date: str
+    ) -> pd.DataFrame:
+        """按配置的优先级通过 AkShare 获取 A 股日线数据。"""
+        providers = {
+            'tencent': self._get_a_stock_daily_akshare_tencent,
+            'eastmoney': self._get_a_stock_daily_akshare_eastmoney,
+        }
+        secondary = (
+            'eastmoney'
+            if self.akshare_history_source == 'tencent'
+            else 'tencent'
+        )
+
+        for provider_name in (self.akshare_history_source, secondary):
+            df = providers[provider_name](ticker, start_date, end_date)
+            if not df.empty:
+                logger.info(
+                    "通过 AkShare %s 获取到 %s 日线数据",
+                    provider_name,
+                    ticker
+                )
+                return df
+            logger.warning(
+                "AkShare %s 未获取到 %s 数据，尝试下一个来源",
+                provider_name,
+                ticker
+            )
+
+        return pd.DataFrame()
+
+    def _get_a_stock_daily_akshare_tencent(
+        self,
+        ticker: str,
+        start_date: str,
+        end_date: str
+    ) -> pd.DataFrame:
+        """使用 AkShare 的腾讯行情接口获取 A 股日线数据。"""
+        if not self.akshare_available:
+            logger.error("AkShare 未初始化")
+            return pd.DataFrame()
+
+        try:
+            market_prefix = 'sh' if ticker.endswith('.SH') else 'sz'
+            symbol = f"{market_prefix}{ticker.split('.')[0]}"
+            df = self.ak.stock_zh_a_hist_tx(
+                symbol=symbol,
+                start_date=start_date.replace('-', ''),
+                end_date=end_date.replace('-', ''),
+                adjust="",
+                timeout=self.request_timeout
+            )
+
+            if df.empty:
+                return df
+
+            df = df.rename(columns={'turnover': 'turnover_rate'})
+            df['date'] = pd.to_datetime(df['date'])
+            df = df.sort_values('date').reset_index(drop=True)
+
+            numeric_cols = ['open', 'high', 'low', 'close', 'volume', 'amount']
+            for col in numeric_cols:
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+
+            return df[['date', 'open', 'high', 'low', 'close', 'volume', 'amount']]
+        except Exception as e:
+            logger.error("AkShare 腾讯接口获取数据失败: %s", e)
+            return pd.DataFrame()
+
+    def _get_a_stock_daily_akshare_eastmoney(
+        self,
+        ticker: str,
+        start_date: str,
+        end_date: str
+    ) -> pd.DataFrame:
+        """使用 AkShare 的东方财富接口获取 A 股日线数据。"""
         if not self.akshare_available:
             logger.error("AkShare 未初始化")
             return pd.DataFrame()
@@ -274,7 +395,8 @@ class DataFetcher:
                 period="daily",
                 start_date=start_date.replace('-', ''),
                 end_date=end_date.replace('-', ''),
-                adjust=""
+                adjust="",
+                timeout=self.request_timeout
             )
 
             if df.empty:
@@ -712,6 +834,15 @@ class DataFetcher:
             return df
 
         df = df.copy()
+
+        if self.indicator_engine is not None:
+            try:
+                return self.indicator_engine.enrich(df)
+            except Exception as e:
+                logger.warning(
+                    "AkQuant 指标计算失败，回退到原生实现: %s",
+                    e
+                )
 
         # 计算移动平均线
         for period in [5, 10, 20, 60, 120, 250]:
