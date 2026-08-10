@@ -72,6 +72,7 @@ body {
 
 /* Header */
 .header {
+    position: relative;
     background: rgba(255, 255, 255, 0.25);
     backdrop-filter: blur(15px);
     -webkit-backdrop-filter: blur(15px);
@@ -81,6 +82,49 @@ body {
     margin-bottom: 30px;
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.5);
     text-align: center;
+}
+
+.language-switcher {
+    position: absolute;
+    top: 18px;
+    right: 92px;
+    display: inline-flex;
+    padding: 4px;
+    gap: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-radius: 10px;
+    background: rgba(15, 23, 42, 0.25);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.language-btn {
+    min-width: 48px;
+    padding: 7px 11px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.language-btn:hover {
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.language-btn.active {
+    background: rgba(255, 255, 255, 0.92);
+    color: #3730a3;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
+}
+
+.language-btn:focus-visible {
+    outline: 2px solid #ffffff;
+    outline-offset: 2px;
 }
 
 .header-content h1 {
@@ -820,6 +864,17 @@ textarea.input-field {
 @media (max-width: 768px) {
     .container {
         padding: 15px;
+    }
+
+    .header {
+        padding-top: 76px;
+    }
+
+    .language-switcher {
+        top: 18px;
+        right: auto;
+        left: 50%;
+        transform: translateX(-50%);
     }
 
     .header-content h1 {

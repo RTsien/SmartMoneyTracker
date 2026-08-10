@@ -28,6 +28,19 @@ class TestFlaskAPI(unittest.TestCase):
         """测试主页路由"""
         response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
+        self.assertIn(b'<html lang="en">', response.data)
+        self.assertIn(b'Stock Analysis', response.data)
+        self.assertIn(b'id="languageBtnEn"', response.data)
+        self.assertIn(b'id="languageBtnZh"', response.data)
+
+    def test_frontend_i18n_defaults_to_english(self):
+        """界面默认英文并包含中英文翻译资源。"""
+        response = self.client.get('/static/js/app.js')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"const DEFAULT_LANGUAGE = 'en'", response.data)
+        self.assertIn('股票分析'.encode('utf-8'), response.data)
+        self.assertIn(b'Stock Analysis', response.data)
+        self.assertIn(b'localStorage.setItem', response.data)
 
     def test_config_route(self):
         """测试配置接口"""

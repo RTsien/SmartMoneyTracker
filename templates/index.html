@@ -1,15 +1,16 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartMoneyTracker - 聪明钱追踪系统</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>SmartMoneyTracker - Institutional Flow Analysis</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260810-i18n">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <!-- GitHub Corner -->
-    <a href="https://github.com/rtsien/SmartMoneyTracker" class="github-corner" aria-label="View source on GitHub" target="_blank">
+    <a href="https://github.com/RTsien/SmartMoneyTracker" class="github-corner" aria-label="View source on GitHub" data-i18n-aria-label="githubAria" target="_blank">
         <svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true">
             <path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path>
             <path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path>
@@ -20,9 +21,13 @@
     <div class="container">
         <!-- Header -->
         <header class="header">
+            <div class="language-switcher" role="group" aria-label="Language" data-i18n-aria-label="languageSelector">
+                <button id="languageBtnEn" class="language-btn active" type="button" data-language="en" aria-pressed="true">EN</button>
+                <button id="languageBtnZh" class="language-btn" type="button" data-language="zh-CN" aria-pressed="false">中文</button>
+            </div>
             <div class="header-content">
                 <h1><i class="fas fa-chart-line"></i> SmartMoneyTracker</h1>
-                <p class="subtitle">追踪"聪明钱"的足迹 - 机构资金进出场全周期识别系统</p>
+                <p class="subtitle" data-i18n="subtitle">Track smart money across the full institutional accumulation and distribution cycle</p>
             </div>
         </header>
 
@@ -31,47 +36,47 @@
             <!-- Analysis Form -->
             <section class="analysis-section">
                 <div class="card">
-                    <h2><i class="fas fa-search"></i> 股票分析</h2>
+                    <h2><i class="fas fa-search"></i> <span data-i18n="stockAnalysis">Stock Analysis</span></h2>
                     
                     <!-- Single Stock Analysis -->
                     <div class="form-group">
-                        <label for="ticker">股票代码</label>
-                        <input type="text" id="ticker" placeholder="例如: 600519.SH, AAPL, 0700.HK" class="input-field">
-                        <small class="help-text">支持 A股、美股、港股</small>
+                        <label for="ticker" data-i18n="tickerLabel">Ticker</label>
+                        <input type="text" id="ticker" placeholder="e.g. 600519.SH, AAPL, 0700.HK" data-i18n-placeholder="tickerPlaceholder" class="input-field">
+                        <small class="help-text" data-i18n="marketsHelp">Supports Chinese A-shares, US stocks, and Hong Kong stocks</small>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="period">回看天数</label>
+                            <label for="period" data-i18n="lookbackDays">Lookback Period</label>
                             <select id="period" class="input-field">
-                                <option value="60">60天</option>
-                                <option value="120">120天</option>
-                                <option value="250" selected>250天</option>
-                                <option value="500">500天</option>
+                                <option value="60" data-i18n="days60">60 days</option>
+                                <option value="120" data-i18n="days120">120 days</option>
+                                <option value="250" data-i18n="days250" selected>250 days</option>
+                                <option value="500" data-i18n="days500">500 days</option>
                             </select>
                         </div>
 
                         <div class="form-group">
                             <label class="checkbox-label">
                                 <input type="checkbox" id="analyze_structure" checked>
-                                <span>启用结构性信号分析</span>
+                                <span data-i18n="structureAnalysis">Enable structural signal analysis</span>
                             </label>
                         </div>
                     </div>
 
                     <button id="analyzeBtn" class="btn btn-primary">
-                        <i class="fas fa-chart-bar"></i> 开始分析
+                        <i class="fas fa-chart-bar"></i> <span data-i18n="analyze">Analyze</span>
                     </button>
 
                     <!-- Batch Analysis -->
                     <div class="batch-section">
-                        <h3><i class="fas fa-layer-group"></i> 批量分析</h3>
+                        <h3><i class="fas fa-layer-group"></i> <span data-i18n="batchAnalysis">Batch Analysis</span></h3>
                         <div class="form-group">
-                            <label for="batch_tickers">股票代码列表 (每行一个)</label>
-                            <textarea id="batch_tickers" rows="4" placeholder="600519.SH&#10;000858.SZ&#10;AAPL" class="input-field"></textarea>
+                            <label for="batch_tickers" data-i18n="batchTickerLabel">Ticker list (one per line)</label>
+                            <textarea id="batch_tickers" rows="4" placeholder="600519.SH&#10;000858.SZ&#10;AAPL" data-i18n-placeholder="batchPlaceholder" class="input-field"></textarea>
                         </div>
                         <button id="batchAnalyzeBtn" class="btn btn-secondary">
-                            <i class="fas fa-list"></i> 批量分析
+                            <i class="fas fa-list"></i> <span data-i18n="batchAnalyze">Analyze Batch</span>
                         </button>
                     </div>
                 </div>
@@ -81,9 +86,9 @@
             <section class="results-section" id="resultsSection" style="display: none;">
                 <div class="card">
                     <div class="results-header">
-                        <h2><i class="fas fa-chart-pie"></i> 分析结果</h2>
+                        <h2><i class="fas fa-chart-pie"></i> <span data-i18n="results">Analysis Results</span></h2>
                         <button id="clearBtn" class="btn btn-small">
-                            <i class="fas fa-times"></i> 清除
+                            <i class="fas fa-times"></i> <span data-i18n="clear">Clear</span>
                         </button>
                     </div>
 
@@ -109,21 +114,21 @@
                                 <i class="fas fa-arrow-up"></i>
                                 <div>
                                     <span class="stat-value" id="inflowCount">0</span>
-                                    <span class="stat-label">进场信号</span>
+                                    <span class="stat-label" data-i18n="inflowSignals">Inflow Signals</span>
                                 </div>
                             </div>
                             <div class="signal-stat outflow">
                                 <i class="fas fa-arrow-down"></i>
                                 <div>
                                     <span class="stat-value" id="outflowCount">0</span>
-                                    <span class="stat-label">离场信号</span>
+                                    <span class="stat-label" data-i18n="outflowSignals">Outflow Signals</span>
                                 </div>
                             </div>
                             <div class="signal-stat total">
                                 <i class="fas fa-signal"></i>
                                 <div>
                                     <span class="stat-value" id="totalCount">0</span>
-                                    <span class="stat-label">总信号数</span>
+                                    <span class="stat-label" data-i18n="totalSignals">Total Signals</span>
                                 </div>
                             </div>
                         </div>
@@ -132,14 +137,14 @@
                         <div class="signals-details">
                             <div class="signals-column">
                                 <h4 class="signals-title inflow-title">
-                                    <i class="fas fa-arrow-trend-up"></i> 进场信号 (吸筹)
+                                    <i class="fas fa-arrow-trend-up"></i> <span data-i18n="accumulationSignals">Inflow Signals (Accumulation)</span>
                                 </h4>
                                 <div id="inflowSignals" class="signals-list"></div>
                             </div>
 
                             <div class="signals-column">
                                 <h4 class="signals-title outflow-title">
-                                    <i class="fas fa-arrow-trend-down"></i> 离场信号 (派发)
+                                    <i class="fas fa-arrow-trend-down"></i> <span data-i18n="distributionSignals">Outflow Signals (Distribution)</span>
                                 </h4>
                                 <div id="outflowSignals" class="signals-list"></div>
                             </div>
@@ -147,13 +152,13 @@
 
                         <!-- Recommendation -->
                         <div class="recommendation-box" id="recommendationBox">
-                            <h4><i class="fas fa-lightbulb"></i> 投资建议</h4>
+                            <h4><i class="fas fa-lightbulb"></i> <span data-i18n="recommendation">Recommendation</span></h4>
                             <p id="recommendationText"></p>
                         </div>
 
                         <!-- Full Report -->
                         <details class="report-details">
-                            <summary><i class="fas fa-file-alt"></i> 查看完整报告</summary>
+                            <summary><i class="fas fa-file-alt"></i> <span data-i18n="fullReport">View Full Report</span></summary>
                             <pre id="fullReport" class="report-content"></pre>
                         </details>
                     </div>
@@ -161,7 +166,7 @@
                     <!-- Batch Results -->
                     <div id="batchResults" style="display: none;">
                         <div class="batch-summary">
-                            <p>分析完成 <strong id="batchCount">0</strong> 只股票</p>
+                            <p><span data-i18n="batchCompletePrefix">Analysis completed for</span> <strong id="batchCount">0</strong> <span data-i18n="batchCompleteSuffix">stocks</span></p>
                         </div>
                         <div id="batchResultsList" class="batch-list"></div>
                     </div>
@@ -172,7 +177,7 @@
             <div id="loadingIndicator" class="loading-overlay" style="display: none;">
                 <div class="loading-spinner">
                     <i class="fas fa-spinner fa-spin"></i>
-                    <p>正在分析中...</p>
+                    <p data-i18n="analyzing">Analyzing...</p>
                 </div>
             </div>
 
@@ -180,7 +185,7 @@
             <div id="errorMessage" class="error-message" style="display: none;">
                 <i class="fas fa-exclamation-circle"></i>
                 <span id="errorText"></span>
-                <button class="close-btn" onclick="hideError()">×</button>
+                <button class="close-btn" onclick="hideError()" aria-label="Close" data-i18n-aria-label="close">×</button>
             </div>
         </main>
 
@@ -188,16 +193,16 @@
         <footer class="footer">
             <p>
                 <i class="fas fa-info-circle"></i> 
-                本工具仅供学习和研究目的，不构成任何投资建议。投资有风险，决策需谨慎。
+                <span data-i18n="disclaimer">For educational and research purposes only. This tool does not constitute investment advice. Investing involves risk.</span>
             </p>
             <p class="footer-links">
-                <a href="https://github.com/rtsien/SmartMoneyTracker" target="_blank">
+                <a href="https://github.com/RTsien/SmartMoneyTracker" target="_blank">
                     <i class="fab fa-github"></i> GitHub
                 </a>
             </p>
         </footer>
     </div>
 
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=20260810-i18n"></script>
 </body>
 </html>
