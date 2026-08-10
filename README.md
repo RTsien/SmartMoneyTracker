@@ -32,11 +32,10 @@ The system **does not rely on a single indicator**. Instead, it combines bidirec
    - **Accumulation:** bullish OBV/MFI divergence and oversold MFI readings below 20
    - **Distribution:** bearish OBV/MFI divergence and overbought MFI readings above 80
 
-3. **Market microstructure** ⚠️ *Requires a commercial Level 2 data feed*
-   - **Accumulation:** persistent bid walls at key support levels
-   - **Distribution:** persistent sell walls at key resistance levels
-   - Level 2 order-book analysis, static order imbalance ratio (SOIR), and algorithmic execution footprint detection
-   - **Note:** the module interfaces are implemented, but a commercial data provider such as Wind or Eastmoney Choice is required. The 20+ signals supported by the free AkShare, Tushare, and yfinance sources remain useful without this module.
+3. **Market microstructure extension** ⚠️ *Interface only; inactive without a commercial Level 2 feed*
+   - Extension interfaces are retained for a future licensed data provider
+   - Full order-book analysis, static order imbalance ratio (SOIR), and execution-footprint detection are not on the current roadmap
+   - The application does not produce Level 2 signals from the current free AkShare, Tushare, or yfinance data sources
 
 4. **Ownership structure**
    - **Accumulation:** new institutional shareholders and a declining shareholder count
@@ -47,10 +46,6 @@ The system **does not rely on a single indicator**. Instead, it combines bidirec
    - **Accumulation:** sustained RSP outperformance against a market or sector benchmark
    - **Distribution:** sustained RSP underperformance against a market or sector benchmark
    - Stock-to-sector comparisons and stock-to-market divergence detection
-
-6. **Fundamental catalysts**
-   - **Accumulation catalysts:** product launches, improving industry conditions, earnings beats, and favorable policies
-   - **Distribution catalysts:** accounting fraud, executive misconduct, earnings warnings, and adverse regulation
 
 ### Bidirectional Scoring
 
@@ -90,7 +85,7 @@ SmartMoneyTracker/
 │   ├── price_volume_signals.py    # Accumulation and distribution signals
 │   ├── indicator_signals.py       # Technical indicator signals
 │   ├── disclosure_signals.py      # Ownership and disclosure signals
-│   ├── microstructure_signals.py  # Level 2 microstructure signals
+│   ├── microstructure_signals.py  # Inactive Level 2 extension interfaces
 │   └── relative_strength.py       # Relative-strength signals
 │
 ├── aggregator/                    # Signal aggregation layer
@@ -169,7 +164,7 @@ Open [http://localhost:8001](http://localhost:8001) in your browser.
 The web interface provides:
 
 - 🎨 A modern user interface
-- 📊 Real-time analysis results
+- 📊 On-demand analysis results
 - 📈 Visual scores and signals
 - 🔄 Single-stock and batch analysis
 - 📱 A responsive layout for desktop and mobile devices
@@ -329,10 +324,10 @@ Shares may be moving from retail investors to institutions.
 - **Daily market data**
   - Chinese A-shares: **AkShare via Tencent (default) or Eastmoney**, with Tushare as a fallback
   - US and Hong Kong stocks: **AkShare via Sina**, with yfinance as a fallback
-- **Level 2 data** ⚠️ **Not included; a commercial API is required**
+- **Level 2 data** ⚠️ **Not included; extension interfaces only**
   - Potential providers: Eastmoney Choice, Wind, and similar vendors
-  - Use case: microstructure signals such as bid-wall and sell-wall detection
-  - The architecture exposes extension points for a compatible data feed
+  - Full microstructure analysis remains out of scope until a licensed provider is selected
+  - The architecture only retains extension points for a compatible feed
 - **Institutional holdings**
   - Chinese A-shares: **AkShare** or Tushare (`top10_holders`, `stk_holdernumber`)
   - US stocks: **yfinance**
@@ -340,7 +335,7 @@ Shares may be moving from retail investors to institutions.
 - **Capital flows**
   - Northbound flows: **AkShare** or Tushare (`hk_hold`)
   - Southbound flows: Eastmoney API
-- **Disclosures and news:** CNInfo and official exchange websites
+- **Potential disclosure and news sources:** CNInfo and official exchange websites; broader integration remains in the long-term backlog
 
 ## 🔧 Configuration
 
@@ -451,7 +446,7 @@ The project is based on a detailed smart-money analysis framework:
 - [x] Report generator
 - [x] Backtest equity, benchmark, drawdown, and signal visualizations
 
-### Phase 5: Optimization and Expansion ✅
+### Phase 5: Reliability and Expansion ✅
 
 - [x] In-memory daily-data caching
 - [x] Persistent TTL caching across processes
@@ -462,6 +457,21 @@ The project is based on a detailed smart-money analysis framework:
 - [x] Point-in-time backtesting MVP with AKQuant next-open execution
 - [x] Walk-forward validation and out-of-sample parameter-sensitivity reports
 - [x] Publication-time disclosure storage for structural-signal backtests
+
+### Long-Term Backlog — No Delivery Date
+
+- SEC Form 13F institutional-holdings ingestion
+- HKEXnews disclosure ingestion for Hong Kong stocks
+- News and fundamental-catalyst analysis
+- A general persistent application database, introduced only when historical scores or richer scheduled-task state require it; the existing TTL cache and disclosure store remain purpose-specific
+
+### Explicitly Not on the Current Roadmap
+
+- **Machine-learning integration:** deferred until reliable labels and point-in-time backtests can demonstrate value without false precision
+- **Strategy-optimization engine:** excluded at the current stage because automated parameter search would create a high overfitting risk
+- **Community-sharing platform:** excluded because it does not support the project's core role as a focused analysis tool
+- **Full Level 2 microstructure analysis:** excluded until a licensed commercial data source is selected; only extension interfaces are retained
+- **Tick-level real-time monitoring:** replaced by scheduled end-of-day scans, which match the capabilities of the current daily-data stack
 
 ## 🧪 Testing
 
