@@ -1,187 +1,193 @@
 # SmartMoneyTracker
 
-> 追踪"聪明钱"的足迹：基于多维度分析的机构资金进出场全周期识别系统
+**English** | [简体中文](README.zh-CN.md)
+
+> Follow the smart money: identify the full institutional capital cycle—from accumulation to distribution—through multidimensional market analysis.
 
 [![Python Version](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-## 📋 项目简介
+## 📋 Overview
 
-SmartMoneyTracker 是一个模块化的 Python 应用程序，用于自动化扫描和分析 **A股、美股、港股** 市场的股票，识别大资金（机构投资者）从**进场（吸筹）到离场（派发）**的全周期信号。
+SmartMoneyTracker is a modular Python application that automatically scans and analyzes stocks across the **Chinese A-share, US, and Hong Kong markets**. It identifies signals throughout the full institutional capital cycle, from **entry and accumulation** to **exit and distribution**.
 
-在复杂的证券市场中，"大资金"由共同基金、养老基金、对冲基金、QFII 以及高净值投资者组成。它们的投资策略、时间视野和执行方式各不相同，在市场中留下了各异的信号。识别这些全周期信号对于：
+Institutional capital comes from mutual funds, pension funds, hedge funds, QFIIs, and high-net-worth investors. These participants follow different strategies, time horizons, and execution methods, leaving distinct footprints in the market. Identifying the complete cycle can help with:
 
-- ✅ **风险管理**：避免在机构派发时"接飞刀"
-- ✅ **机会捕捉**：识别机构吸筹建仓的早期信号
-- ✅ **战术定位**：与机构情绪保持一致
-- ✅ **趋势预判**：预判潜在的趋势启动与反转
+- ✅ **Risk management** — avoid buying into institutional distribution
+- ✅ **Opportunity discovery** — detect early signs of institutional accumulation
+- ✅ **Tactical positioning** — align positioning with institutional sentiment
+- ✅ **Trend anticipation** — identify potential trend breakouts and reversals
 
-至关重要。
+## 🎯 Key Features
 
-## 🎯 核心特点
+### Multidimensional Analysis
 
-### 多维度分析框架
+The system **does not rely on a single indicator**. Instead, it combines bidirectional signals from several independent areas of analysis:
 
-系统**不依赖任何单一指标**，而是整合多个独立分析领域的双向信号：
+1. **Price and volume**
+   - **Accumulation:** high-volume consolidation near a bottom, high-volume resistance breakouts, and Wyckoff accumulation patterns such as springs and last points of support (LPS)
+   - **Distribution:** high-volume price stagnation near a top, high-volume support breakdowns, and low-volume rallies at elevated prices
 
-1. **价量关系分析**
-   - **吸筹信号**：底部放量横盘、放量突破阻力位、威科夫吸筹模式（弹簧/LPS）
-   - **派发信号**：高位放量滞涨、放量跌破关键支撑位、高位缩量上涨
+2. **Technical indicators**
+   - **Accumulation:** bullish OBV/MFI divergence and oversold MFI readings below 20
+   - **Distribution:** bearish OBV/MFI divergence and overbought MFI readings above 80
 
-2. **技术指标信号**
-   - **吸筹信号**：OBV/MFI 看涨背离、MFI 超卖区（<20）
-   - **派发信号**：OBV/MFI 看跌背离、MFI 超买区（>80）
+3. **Market microstructure** ⚠️ *Requires a commercial Level 2 data feed*
+   - **Accumulation:** persistent bid walls at key support levels
+   - **Distribution:** persistent sell walls at key resistance levels
+   - Level 2 order-book analysis, static order imbalance ratio (SOIR), and algorithmic execution footprint detection
+   - **Note:** the module interfaces are implemented, but a commercial data provider such as Wind or Eastmoney Choice is required. The 20+ signals supported by the free AkShare, Tushare, and yfinance sources remain useful without this module.
 
-3. **市场微观结构** ⚠️ *需要商业Level-2数据接口*
-   - **吸筹信号**：关键支撑位持续买单墙
-   - **派发信号**：关键阻力位持续卖盘压单
-   - Level-2 盘口分析、订单失衡率（SOIR）、算法交易足迹识别
-   - **说明**：此模块已实现接口规范，但需要商业数据源（万得/东方财富Choice等，费用数千至数万元/年）。当前使用免费数据源（AkShare/Tushare/yfinance）时，其他20+种信号已足够强大
+4. **Ownership structure**
+   - **Accumulation:** new institutional shareholders and a declining shareholder count
+   - **Distribution:** institutional selling and a rising shareholder count
+   - Changes in shareholdings by directors and senior executives
 
-4. **股东结构变化**
-   - **吸筹信号**：新进机构股东、股东户数减少
-   - **派发信号**：机构减持、股东户数增加
-   - 董监高持股变动监控
+5. **Relative strength**
+   - **Accumulation:** sustained RSP outperformance against a market or sector benchmark
+   - **Distribution:** sustained RSP underperformance against a market or sector benchmark
+   - Stock-to-sector comparisons and stock-to-market divergence detection
 
-5. **相对强弱分析**
-   - **吸筹信号**：RSP 持续跑赢大盘/行业指数
-   - **派发信号**：RSP 持续跑输大盘/行业指数
-   - 个股与板块比较、个股与大盘背离识别
+6. **Fundamental catalysts**
+   - **Accumulation catalysts:** product launches, improving industry conditions, earnings beats, and favorable policies
+   - **Distribution catalysts:** accounting fraud, executive misconduct, earnings warnings, and adverse regulation
 
-6. **基本面催化剂**
-   - **吸筹催化剂**：新产品发布、行业格局改善、业绩超预期、有利政策
-   - **派发催化剂**：财务造假、高管丑闻、业绩预警、不利监管
+### Bidirectional Scoring
 
-### 智能双向评分
+- Weighted aggregation across multiple signals
+- Composite directional score from **-10 to +10**:
+  - **+6 to +10:** `STRONG_BUY` — strong accumulation signals
+  - **+2 to +5:** `BUY` — moderate accumulation signals
+  - **-1 to +1:** `NEUTRAL` — no clear direction
+  - **-5 to -2:** `SELL` — moderate distribution signals
+  - **-10 to -6:** `STRONG_SELL` — strong distribution signals
+- Human-readable analysis reports
 
-- 基于权重的多信号聚合
-- 综合动向评分（**-10 到 +10**）
-  - **+6 到 +10**：STRONG_BUY（强烈买入）- 强烈吸筹信号
-  - **+2 到 +5**：BUY（买入）- 温和吸筹信号
-  - **-1 到 +1**：NEUTRAL（中性）- 无明确方向
-  - **-5 到 -2**：SELL（卖出）- 温和派发信号
-  - **-10 到 -6**：STRONG_SELL（强烈卖出）- 强烈派发信号
-- 人类可读的分析报告
+## 🏗️ Architecture
 
-## 🏗️ 系统架构
-
-```
+```text
 SmartMoneyTracker/
+├── app.py                         # Web application
+├── main.py                        # CLI and scanner entry point
+├── config.py                      # Configuration
+├── requirements.txt               # Python dependencies
+├── Dockerfile
+├── docker-compose.yml
 │
-├── main.py                         # 主程序入口
-├── config.py                       # 配置文件
-├── requirements.txt                # 依赖库
-│
-├── data_fetcher/                   # 数据获取层
+├── data_fetcher/                  # Data access layer
 │   ├── __init__.py
-│   └── manager.py                  # 统一数据API管理器
+│   └── manager.py                 # Unified data API manager
 │
-├── analysis/                       # 信号分析层（核心逻辑）
+├── analysis/                      # Signal analysis layer
 │   ├── __init__.py
-│   ├── price_volume_signals.py    # 价量关系信号（吸筹与派发）
-│   ├── indicator_signals.py       # 技术指标信号（背离等）
-│   ├── disclosure_signals.py      # 公开披露信号（股东、公告等）
-│   ├── microstructure_signals.py  # 微观结构信号（Level-2）
-│   └── relative_strength.py       # 相对强弱信号
+│   ├── price_volume_signals.py    # Accumulation and distribution signals
+│   ├── indicator_signals.py       # Technical indicator signals
+│   ├── disclosure_signals.py      # Ownership and disclosure signals
+│   ├── microstructure_signals.py  # Level 2 microstructure signals
+│   └── relative_strength.py       # Relative-strength signals
 │
-├── aggregator/                     # 信号聚合层
+├── aggregator/                    # Signal aggregation layer
 │   ├── __init__.py
-│   └── scorer.py                  # 信号计分与综合评级
+│   └── scorer.py                  # Scoring and composite ratings
 │
-└── reporting/                      # 报告生成层
-    ├── __init__.py
-    └── generator.py               # 生成文本/HTML报告
+├── reporting/                     # Reporting layer
+│   ├── __init__.py
+│   └── generator.py               # Text and HTML reports
+│
+├── static/                        # Web assets
+├── templates/                     # Web templates
+└── tests/                         # Test suite
 ```
 
-## 🚀 快速开始
+## 🚀 Getting Started
 
-### Docker 部署（推荐）🐳
+### Docker (Recommended) 🐳
 
-使用 Docker 一键部署，无需配置环境：
+Run the application without configuring a local Python environment:
 
 ```bash
-# 克隆项目
-git clone https://github.com/yourusername/SmartMoneyTracker.git
+git clone https://github.com/RTsien/SmartMoneyTracker.git
 cd SmartMoneyTracker
 
-# 启动服务
 docker-compose up -d
-
-# 在浏览器中访问
-# http://localhost:8001
 ```
 
-详细说明请查看：[Docker 部署文档](DOCKER.md)
+Open [http://localhost:8001](http://localhost:8001) in your browser.
 
-### 本地安装
+For more information, see the [Docker deployment guide](DOCKER.md) *(Chinese)*.
 
-#### 前置要求
+### Local Installation
 
-- Python 3.9+
-- pip 包管理器
+#### Requirements
 
-#### 安装步骤
+- Python 3.9 or later
+- pip
+
+#### Installation
 
 ```bash
-# 克隆项目
-git clone https://github.com/yourusername/SmartMoneyTracker.git
+git clone https://github.com/RTsien/SmartMoneyTracker.git
 cd SmartMoneyTracker
 
-# 安装依赖
 pip install -r requirements.txt
-
-# 配置 API 密钥（可选）
-cp config.example.py config.py
-# 编辑 config.py 添加您的 API 密钥
 ```
 
-### 使用方式
+API credentials are optional. If you want to use Tushare, add your token in `config.py` or provide it through the supported environment configuration.
 
-#### 方式一：Web 界面 🌐
+### Usage
+
+#### Web Interface 🌐
 
 ```bash
-# 启动 Web 服务
 python app.py
-
-# 在浏览器中访问
-# http://localhost:8001
 ```
 
-**Web 界面特性**：
-- 🎨 现代化的用户界面
-- 📊 实时分析结果展示
-- 📈 可视化评分和信号
-- 🔄 支持单股和批量分析
-- 📱 响应式设计，支持移动设备
+Open [http://localhost:8001](http://localhost:8001) in your browser.
 
-#### 方式二：命令行
+The web interface provides:
+
+- 🎨 A modern user interface
+- 📊 Real-time analysis results
+- 📈 Visual scores and signals
+- 🔄 Single-stock and batch analysis
+- 📱 A responsive layout for desktop and mobile devices
+
+#### Command Line and Python API
+
+Run a scan directly from the command line:
+
+```bash
+python3 main.py 600519.SH
+```
+
+Or use the scanner from Python:
 
 ```python
 from main import SmartMoneyScanner
 
-# 初始化扫描器
 scanner = SmartMoneyScanner()
 
-# 扫描单个股票
-result = scanner.scan_stock('600519.SH')  # A股：贵州茅台
-print(result.report)
+# Scan one stock: Kweichow Moutai (A-share)
+result = scanner.scan_stock("600519.SH")
+if result["success"]:
+    print(result["report"])
 
-# 批量扫描股票池
-stocks = ['600519.SH', 'AAPL', '00700.HK']
+# Scan stocks across multiple markets
+stocks = ["600519.SH", "AAPL", "0700.HK"]
 results = scanner.scan_batch(stocks)
 
-# 生成报告
-for stock, result in results.items():
-    print(f"\n{stock}:")
-    print(f"Risk Score: {result.risk_score}/10")
-    print(f"Risk Level: {result.risk_level}")
+for ticker, result in results.items():
+    if result["success"]:
+        print(f"\n{ticker}:")
+        print(f"Score: {result['score']:+.1f}/10")
+        print(f"Rating: {result['rating']}")
 ```
 
-### 输出示例
+### Example Output
 
-#### 示例 1：派发信号
+#### Distribution Signal
 
-```
+```text
 ===== Smart Money Tracker Report =====
 Ticker: 600519.SH
 Date: 2025-10-13
@@ -189,27 +195,28 @@ Overall Score: -7/10 (SELL)
 
 --- Outflow Signals Triggered ---
 [-] HIGH_VOLUME_STAGNATION (Score: -2) on 2025-09-15
-    股价在大幅上涨后出现成交量激增但价格停滞
+    Volume surged after a substantial rally, but price stopped advancing.
 
 [-] MFI_BEARISH_DIVERGENCE (Score: -2)
-    股价创新高但资金流量指标未能同步
+    Price reached a new high while the Money Flow Index did not confirm it.
 
 [-] INSTITUTIONAL_SELL_OFF (Score: -3)
-    China Merchants Fund 减持 5%
+    China Merchants Fund reduced its position by 5%.
 
 [-] RSP_WEAK (Score: -1)
-    跑输 CSI 白酒指数
+    The stock underperformed the CSI Liquor Index.
 
 --- Inflow Signals Triggered ---
 (None)
 
 Recommendation:
-机构派发概率较高，建议谨慎。大资金可能正在利用散户热情卖出筹码。
+The probability of institutional distribution is elevated. Exercise caution;
+large holders may be selling into retail enthusiasm.
 ```
 
-#### 示例 2：吸筹信号
+#### Accumulation Signal
 
-```
+```text
 ===== Smart Money Tracker Report =====
 Ticker: 000858.SZ
 Date: 2025-10-13
@@ -217,213 +224,214 @@ Overall Score: +7/10 (BUY)
 
 --- Inflow Signals Triggered ---
 [+] ACCUMULATION_BREAKOUT (Score: +2) on 2025-10-10
-    放量突破长期盘整区，成交量为近期均量的 2.5 倍
+    Price broke out of a long consolidation range on 2.5x average volume.
 
 [+] OBV_BULLISH_DIVERGENCE (Score: +2)
-    股价创新低但 OBV 拒绝下跌
+    Price reached a new low while OBV held above its previous low.
 
 [+] NEW_INSTITUTION (Score: +3)
-    China Merchants Fund 新进入前十大股东
+    China Merchants Fund entered the top-ten shareholder list.
 
 [+] SHAREHOLDER_COUNT_DECREASE (Score: +1)
-    股东户数较上季度减少 15%
+    The shareholder count declined 15% quarter over quarter.
 
 --- Outflow Signals Triggered ---
 (None)
 
 Recommendation:
-机构吸筹概率高，趋势看涨。筹码正从散户向机构集中。
+The probability of institutional accumulation is high and the trend is bullish.
+Shares may be moving from retail investors to institutions.
 ```
 
-## 📊 支持的市场
+## 📊 Supported Markets
 
-| 市场 | 数据源 | 核心特色 |
-|------|--------|----------|
-| **A股** | **AkShare (默认)**, Tushare | 北向资金监控、十大股东分析、股东户数分析 |
-| **美股** | yfinance | 机构持股数据、日线行情数据 |
-| **港股** | yfinance, AkShare | 机构持股数据、港股通持股数据 |
+| Market | Data sources | Highlights |
+|---|---|---|
+| **Chinese A-shares** | **AkShare (default)**, Tushare | Northbound capital flows, top-ten shareholder analysis, and shareholder count analysis |
+| **US stocks** | yfinance | Institutional ownership and daily market data |
+| **Hong Kong stocks** | yfinance, AkShare | Institutional ownership and Stock Connect holdings |
 
-## 📈 数据来源
+## 📈 Data Sources
 
-- **日线行情**: 
-  - A股: **AkShare (默认)**, Tushare
-  - 美股/港股: yfinance
-- **Level-2 数据** ⚠️ **未实现（需商业接口）**: 东方财富 Choice、万得等商业数据提供商
-  - 费用：数千至数万元/年
-  - 用途：微观结构信号（买单墙、卖盘压单检测）
-  - 说明：架构已预留接口，有数据源时可直接扩展
-- **机构持仓**:
-  - A股: **AkShare (默认)**, Tushare (top10_holders, stk_holdernumber)
-  - 美股: **yfinance (已实现)** - 机构持股者数据
-  - 港股: **yfinance + AkShare (已实现)** - 双数据源支持
-- **资金流向**:
-  - 北向资金: **AkShare (默认)**, Tushare (hk_hold)
-  - 南向资金: Eastmoney API
-- **公告新闻**: 巨潮资讯网、交易所官网
+- **Daily market data**
+  - Chinese A-shares: **AkShare (default)** or Tushare
+  - US and Hong Kong stocks: yfinance
+- **Level 2 data** ⚠️ **Not included; a commercial API is required**
+  - Potential providers: Eastmoney Choice, Wind, and similar vendors
+  - Use case: microstructure signals such as bid-wall and sell-wall detection
+  - The architecture exposes extension points for a compatible data feed
+- **Institutional holdings**
+  - Chinese A-shares: **AkShare (default)** or Tushare (`top10_holders`, `stk_holdernumber`)
+  - US stocks: **yfinance**
+  - Hong Kong stocks: **yfinance and AkShare**
+- **Capital flows**
+  - Northbound flows: **AkShare (default)** or Tushare (`hk_hold`)
+  - Southbound flows: Eastmoney API
+- **Disclosures and news:** CNInfo and official exchange websites
 
-## 🔧 配置说明
+## 🔧 Configuration
 
-在 `config.py` 中配置：
+Configure the application in `config.py`:
 
 ```python
-# 数据源配置
-A_STOCK_DATA_SOURCE = 'akshare'  # 可选: 'akshare' (默认), 'tushare'
+# Data source
+A_STOCK_DATA_SOURCE = "akshare"  # "akshare" (default) or "tushare"
 AKSHARE_ENABLED = True
-TUSHARE_TOKEN = "your_token_here"  # 仅在使用 Tushare 时需要
+TUSHARE_TOKEN = "your_token_here"  # Required only for Tushare
 
-# 股票池
+# Stocks to scan
 STOCK_POOL = [
-    '600519.SH',  # 贵州茅台
-    'AAPL',       # Apple
-    '00700.HK'    # 腾讯控股
+    "600519.SH",  # Kweichow Moutai
+    "AAPL",       # Apple
+    "0700.HK",    # Tencent
 ]
 
-# 信号权重（双向评分）
+# Bidirectional signal weights
 SIGNAL_WEIGHTS = {
-    # 吸筹信号（正分）
-    'ACCUMULATION_BREAKOUT': 2,
-    'OBV_BULLISH_DIVERGENCE': 2,
-    'NEW_INSTITUTION': 3,
-    'SHAREHOLDER_COUNT_DECREASE': 1,
-    'RSP_STRONG': 1,
+    # Accumulation signals (positive)
+    "ACCUMULATION_BREAKOUT": 2,
+    "OBV_BULLISH_DIVERGENCE": 2,
+    "NEW_INSTITUTION": 3,
+    "SHAREHOLDER_COUNT_DECREASE": 1,
+    "RSP_STRONG": 1,
 
-    # 派发信号（负分）
-    'HIGH_VOLUME_STAGNATION': -2,
-    'OBV_BEARISH_DIVERGENCE': -2,
-    'INSTITUTIONAL_SELL_OFF': -3,
-    'BREAK_SUPPORT_HEAVY_VOLUME': -3,
-    'RSP_WEAK': -1,
-    # ...
+    # Distribution signals (negative)
+    "HIGH_VOLUME_STAGNATION": -2,
+    "OBV_BEARISH_DIVERGENCE": -2,
+    "INSTITUTIONAL_SELL_OFF": -3,
+    "BREAK_SUPPORT_HEAVY_VOLUME": -3,
+    "RSP_WEAK": -1,
 }
 
-# 分析参数
-LOOKBACK_PERIOD = 60  # 回看天数
-VOL_MULTIPLIER = 2.0   # 放量倍数
+# Analysis parameters
+LOOKBACK_PERIOD = 60
+VOL_MULTIPLIER = 2.0
 ```
 
-### 切换数据源
-
-通过环境变量切换 A股数据源：
+### Switching the A-share Data Source
 
 ```bash
-# 使用 AkShare (默认，无需 Token)
+# AkShare: the default; no token required
 python3 main.py 600519.SH
 
-# 使用 Tushare (需要配置 TUSHARE_TOKEN)
+# Tushare: requires TUSHARE_TOKEN
 A_STOCK_DATA_SOURCE=tushare python3 main.py 600519.SH
 ```
 
-## 📚 理论基础
+## 📚 Methodology
 
-本项目基于以下详细分析框架：
+The project is based on a detailed smart-money analysis framework:
 
-- [完整理论文档](PREREQUISITES.md) - 追踪"聪明钱"的完整指南（进场与离场全周期）
-- [技术规格说明](CODING_SPEC.md) - 系统实现详细规格
+- [Full methodology](PREREQUISITES.md) *(Chinese)* — a guide to the complete accumulation and distribution cycle
+- [Technical specification](CODING_SPEC.md) *(Chinese)* — detailed implementation requirements
 
-### 核心理论要点
+### Core Principles
 
-1. **硬币的两面**: 机构资本的进场（吸筹）与离场（派发）构成完整周期。真正的市场洞察力来源于理解从建仓到拉升、再到派发撤离的完整逻辑链条。
+1. **Two sides of the same cycle:** institutional accumulation and distribution form one complete capital cycle. Useful market insight comes from understanding the progression from position building through markup and, ultimately, exit.
 
-2. **资金流向的谬误**: 传统"主力资金流向"指标存在根本性逻辑缺陷，实际衡量的是交易"攻击性"而非真实资金流向。
+2. **The capital-flow fallacy:** many conventional “main capital flow” indicators measure trade aggressiveness rather than the actual movement of capital.
 
-3. **多信号收敛**: 高置信度的判断需要来自不同分析维度的信号相互验证。任何单一指标都可能产生误导。
+3. **Signal convergence:** high-confidence conclusions require confirmation across independent dimensions. Any single indicator can be misleading.
 
-4. **信号序列**: 机构动向遵循一定模式：
-   - 市场信号（价量、背离）通常最先出现（领先指标）
-   - 基本面催化剂随后显现（滞后确认）
-   - 官方披露最后出现（确凿但延迟）
+4. **Signal sequencing:** institutional activity tends to reveal itself in stages:
+   - Market signals such as price-volume behavior and divergences usually appear first
+   - Fundamental catalysts emerge later as confirmation
+   - Official disclosures provide strong but delayed evidence
 
-5. **市场差异化**: A股、美股、港股在投资者结构、交易规则、披露机制上存在差异，需要差异化分析策略。
+5. **Market-specific behavior:** Chinese A-share, US, and Hong Kong markets differ in investor composition, trading rules, and disclosure regimes, so each requires a tailored analytical approach.
 
-## 🛣️ 开发路线图
+## 🛣️ Roadmap
 
-### Phase 1: 核心功能 ✅
-- [x] 项目架构设计
-- [x] 理论框架文档
-- [x] 技术规格说明
+### Phase 1: Foundations ✅
 
-### Phase 2: 数据层 ✅ 已完成
-- [x] 实现数据获取管理器
-- [x] 集成 AkShare API（默认）
-- [x] 集成 Tushare API（备选）
-- [x] 集成 yfinance（美股/港股）
-- [x] 实现智能数据源切换
+- [x] Architecture design
+- [x] Methodology documentation
+- [x] Technical specification
 
-### Phase 3: 分析层 ✅ 已完成
-- [x] 价量关系信号分析
-- [x] 技术指标信号分析
-- [x] 结构性信号分析
-- [x] 相对强弱分析
-- [x] 港美股机构持股数据获取
+### Phase 2: Data Layer ✅
 
-### Phase 4: 聚合与报告 ✅ 已完成
-- [x] 风险评分系统
-- [x] 报告生成器
-- [ ] 可视化图表
+- [x] Unified data manager
+- [x] AkShare integration as the default A-share source
+- [x] Optional Tushare integration
+- [x] yfinance integration for US and Hong Kong stocks
+- [x] Intelligent data-source switching
 
-### Phase 5: 优化与扩展
-- [ ] 数据缓存机制
-- [ ] 并发处理优化
-- [ ] 实时监控模式
-- [x] Web 界面 ✅
-- [x] 单元测试 ✅
-- [ ] 回测系统
+### Phase 3: Analysis Layer ✅
 
-## 🧪 测试
+- [x] Price-volume signals
+- [x] Technical indicator signals
+- [x] Structural signals
+- [x] Relative-strength analysis
+- [x] Institutional ownership data for US and Hong Kong stocks
 
-运行所有测试：
+### Phase 4: Aggregation and Reporting ✅
+
+- [x] Risk-scoring system
+- [x] Report generator
+- [ ] Data visualizations
+
+### Phase 5: Optimization and Expansion
+
+- [ ] Data caching
+- [ ] Concurrent processing
+- [ ] Real-time monitoring
+- [x] Web interface
+- [x] Unit tests
+- [ ] Backtesting
+
+## 🧪 Testing
 
 ```bash
-# 使用快捷脚本
+# Run the convenience script
 ./run_tests.sh
 
-# 或直接运行
+# Or run the test entry point directly
 python3 tests/run_tests.py
 
-# 运行特定测试
+# Run a specific test module
 python3 -m unittest tests.test_app
 ```
 
-详细测试文档请查看：[tests/TESTING.md](tests/TESTING.md)
+See the [testing guide](tests/TESTING.md) *(Chinese)* for more details.
 
-## 🤝 贡献指南
+## 🤝 Contributing
 
-欢迎贡献！请遵循以下步骤：
+Contributions are welcome:
 
-1. Fork 本项目
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 运行测试确保通过 (`./run_tests.sh`)
-5. 推送到分支 (`git push origin feature/AmazingFeature`)
-6. 开启 Pull Request
+1. Fork the repository.
+2. Create a feature branch: `git checkout -b feature/AmazingFeature`.
+3. Commit your changes: `git commit -m 'Add some AmazingFeature'`.
+4. Run the test suite: `./run_tests.sh`.
+5. Push the branch: `git push origin feature/AmazingFeature`.
+6. Open a pull request.
 
-## ⚠️ 免责声明
+## ⚠️ Disclaimer
 
-**本项目仅供学习和研究目的，不构成任何投资建议。**
+**This project is intended for educational and research purposes only. It does not constitute investment advice.**
 
-- 过往表现不代表未来结果
-- 投资有风险，决策需谨慎
-- 使用本工具进行投资决策的风险由用户自行承担
-- 请在使用前充分理解各类信号的含义和局限性
+- Past performance does not guarantee future results.
+- Investing involves risk; make decisions carefully.
+- You are solely responsible for decisions made using this software.
+- Understand the meaning and limitations of each signal before relying on it.
 
-## 📄 许可证
+## 📄 License
 
-本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
+This project is licensed under the MIT License.
 
-## 🙏 致谢
+## 🙏 Acknowledgments
 
-- 感谢 Tushare、AkShare 等开源数据接口项目
-- 理论框架参考了大量学术研究和市场实践
-- 感谢所有贡献者的支持
+- Thanks to the Tushare, AkShare, and other open-data communities.
+- The methodology draws on academic research and market practice.
+- Thanks to everyone who has contributed to the project.
 
-## 📞 联系方式
+## 📞 Links
 
-- 项目主页: [GitHub](https://github.com/rtsien/SmartMoneyTracker)
-- 问题反馈: [Issues](https://github.com/rtsien/SmartMoneyTracker/issues)
-- 讨论交流: [Discussions](https://github.com/rtsien/SmartMoneyTracker/discussions)
+- [Project homepage](https://github.com/RTsien/SmartMoneyTracker)
+- [Issue tracker](https://github.com/RTsien/SmartMoneyTracker/issues)
+- [Discussions](https://github.com/RTsien/SmartMoneyTracker/discussions)
 
 ---
 
-⭐ 如果这个项目对你有帮助，请给个 Star！
+⭐ If you find this project useful, please consider giving it a star.
 
-**记住：市场永远在讲故事，而聪明钱的足迹就隐藏在价量关系、技术指标、盘口数据和持股变化之中。**
+**The market is always telling a story. Smart-money footprints are hidden in price and volume, technical indicators, order-book activity, and ownership changes.**
