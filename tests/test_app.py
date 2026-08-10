@@ -32,6 +32,7 @@ class TestFlaskAPI(unittest.TestCase):
         self.assertIn(b'Stock Analysis', response.data)
         self.assertIn(b'id="languageBtnEn"', response.data)
         self.assertIn(b'id="languageBtnZh"', response.data)
+        self.assertNotIn(b'id="analyze_structure" checked', response.data)
 
     def test_frontend_i18n_defaults_to_english(self):
         """界面默认英文并包含中英文翻译资源。"""

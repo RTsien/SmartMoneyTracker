@@ -1,7 +1,7 @@
 """
 数据获取管理器
 统一管理不同数据源的API调用
-支持 A股 (Tushare/AkShare)、美股 (yfinance)、港股 (yfinance/Tushare)
+支持 A股、港股和美股的 AkShare 行情，并以 Tushare/yfinance 作为备用
 """
 
 import pandas as pd
@@ -40,6 +40,8 @@ class DataFetcher:
             self.akshare_history_source = 'tencent'
 
         self.request_timeout = getattr(config, 'DATA_REQUEST_TIMEOUT', 15)
+        self.cache_enabled = getattr(config, 'CACHE_ENABLED', True)
+        self._daily_data_cache: Dict[Tuple[str, str, str], pd.DataFrame] = {}
         self.tushare_token = config.TUSHARE_TOKEN
         self.ts_api = None
         self.akshare_available = False
@@ -169,6 +171,17 @@ class DataFetcher:
 
     def _get_hk_stock_name(self, ticker: str) -> str:
         """获取港股名称"""
+        hk_name_map = {
+            '0700.HK': '腾讯控股',
+            '9988.HK': '阿里巴巴',
+            '9618.HK': '京东集团',
+            '3690.HK': '美团',
+            '2097.HK': '蜜雪集团',
+            '1810.HK': '小米集团',
+        }
+        if ticker in hk_name_map:
+            return hk_name_map[ticker]
+
         try:
             import yfinance as yf
             stock = yf.Ticker(ticker)
@@ -272,13 +285,22 @@ class DataFetcher:
 
         logger.info(f"获取 {ticker} 日线数据: {start_date} 至 {end_date}")
 
+        cache_key = (ticker, start_date, end_date)
+        if self.cache_enabled and cache_key in self._daily_data_cache:
+            logger.info("使用内存缓存获取 %s 日线数据", ticker)
+            return self._daily_data_cache[cache_key].copy(deep=True)
+
         try:
             if market == 'A_STOCK':
-                return self._get_a_stock_daily(ticker, start_date, end_date)
+                df = self._get_a_stock_daily(ticker, start_date, end_date)
             elif market == 'HK_STOCK':
-                return self._get_hk_stock_daily(ticker, start_date, end_date)
+                df = self._get_hk_stock_daily(ticker, start_date, end_date)
             else:  # US_STOCK
-                return self._get_us_stock_daily(ticker, start_date, end_date)
+                df = self._get_us_stock_daily(ticker, start_date, end_date)
+
+            if self.cache_enabled and not df.empty:
+                self._daily_data_cache[cache_key] = df.copy(deep=True)
+            return df
         except Exception as e:
             logger.error(f"获取 {ticker} 数据失败: {e}")
             return pd.DataFrame()
@@ -467,8 +489,109 @@ class DataFetcher:
 
         return df[['date', 'open', 'high', 'low', 'close', 'volume', 'amount']]
 
+    def _normalize_akshare_history(
+        self,
+        df: pd.DataFrame,
+        start_date: str,
+        end_date: str
+    ) -> pd.DataFrame:
+        """统一 AkShare 港股/美股日线字段并裁剪日期范围。"""
+        if df.empty:
+            return df
+
+        df = df.copy().rename(columns={
+            '日期': 'date',
+            '开盘': 'open',
+            '最高': 'high',
+            '最低': 'low',
+            '收盘': 'close',
+            '成交量': 'volume',
+            '成交额': 'amount',
+        })
+        required = {'date', 'open', 'high', 'low', 'close', 'volume'}
+        if not required.issubset(df.columns):
+            logger.warning("AkShare 行情字段不完整: %s", sorted(df.columns))
+            return pd.DataFrame()
+
+        df['date'] = pd.to_datetime(df['date']).dt.tz_localize(None)
+        for col in ('open', 'high', 'low', 'close', 'volume'):
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+
+        if 'amount' in df.columns:
+            df['amount'] = pd.to_numeric(df['amount'], errors='coerce')
+        else:
+            df['amount'] = df['close'] * df['volume']
+
+        date_format = '%Y%m%d' if len(start_date.replace('-', '')) == 8 else None
+        start = pd.to_datetime(start_date.replace('-', ''), format=date_format)
+        end = pd.to_datetime(end_date.replace('-', ''), format=date_format)
+        df = df[(df['date'] >= start) & (df['date'] <= end)]
+        df = df.dropna(subset=['date', 'open', 'high', 'low', 'close', 'volume'])
+        df = df.sort_values('date').reset_index(drop=True)
+        return df[['date', 'open', 'high', 'low', 'close', 'volume', 'amount']]
+
+    def _get_us_stock_daily_akshare(
+        self,
+        ticker: str,
+        start_date: str,
+        end_date: str
+    ) -> pd.DataFrame:
+        """通过 AkShare 新浪接口获取美股日线数据。"""
+        if not self.akshare_available:
+            return pd.DataFrame()
+
+        try:
+            us_indexes = {
+                '^GSPC': '.INX',
+                '^IXIC': '.IXIC',
+                '^DJI': '.DJI',
+            }
+            if ticker == '^HSI':
+                df = self.ak.stock_hk_index_daily_sina(symbol='HSI')
+            elif ticker in us_indexes:
+                df = self.ak.index_us_stock_sina(symbol=us_indexes[ticker])
+            else:
+                df = self.ak.stock_us_daily(symbol=ticker, adjust='')
+            return self._normalize_akshare_history(df, start_date, end_date)
+        except Exception as e:
+            logger.warning("AkShare 新浪接口获取美股 %s 失败: %s", ticker, e)
+            return pd.DataFrame()
+
+    def _get_hk_stock_daily_akshare(
+        self,
+        ticker: str,
+        start_date: str,
+        end_date: str
+    ) -> pd.DataFrame:
+        """通过 AkShare 新浪接口获取港股日线数据。"""
+        if not self.akshare_available:
+            return pd.DataFrame()
+
+        try:
+            symbol = ticker.removesuffix('.HK').zfill(5)
+            df = self.ak.stock_hk_daily(symbol=symbol, adjust='')
+            return self._normalize_akshare_history(df, start_date, end_date)
+        except Exception as e:
+            logger.warning("AkShare 新浪接口获取港股 %s 失败: %s", ticker, e)
+            return pd.DataFrame()
+
     def _get_us_stock_daily(self, ticker: str, start_date: str, end_date: str) -> pd.DataFrame:
-        """获取美股日线数据"""
+        """获取美股日线数据，优先 AkShare 新浪，失败后回退 yfinance。"""
+        df = self._get_us_stock_daily_akshare(ticker, start_date, end_date)
+        if not df.empty:
+            logger.info("通过 AkShare 新浪获取到 %s 日线数据", ticker)
+            return df
+
+        logger.warning("AkShare 未获取到 %s 数据，尝试使用 yfinance", ticker)
+        return self._get_stock_daily_yfinance(ticker, start_date, end_date)
+
+    def _get_stock_daily_yfinance(
+        self,
+        ticker: str,
+        start_date: str,
+        end_date: str
+    ) -> pd.DataFrame:
+        """通过 yfinance 获取美股或港股日线数据。"""
         try:
             import yfinance as yf
         except ImportError:
@@ -504,8 +627,14 @@ class DataFetcher:
         return df[['date', 'open', 'high', 'low', 'close', 'volume', 'amount']]
 
     def _get_hk_stock_daily(self, ticker: str, start_date: str, end_date: str) -> pd.DataFrame:
-        """获取港股日线数据 (使用 yfinance)"""
-        return self._get_us_stock_daily(ticker, start_date, end_date)
+        """获取港股日线数据，优先 AkShare 新浪，失败后回退 yfinance。"""
+        df = self._get_hk_stock_daily_akshare(ticker, start_date, end_date)
+        if not df.empty:
+            logger.info("通过 AkShare 新浪获取到 %s 日线数据", ticker)
+            return df
+
+        logger.warning("AkShare 未获取到 %s 数据，尝试使用 yfinance", ticker)
+        return self._get_stock_daily_yfinance(ticker, start_date, end_date)
 
     def get_institutional_holdings(
         self,
