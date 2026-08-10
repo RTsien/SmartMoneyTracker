@@ -23,6 +23,9 @@ class TestDataFetcher(unittest.TestCase):
     def setUp(self):
         """测试前设置"""
         self.fetcher = DataFetcher(config)
+        # Provider behavior tests must not depend on cache files from local runs.
+        # Persistent-cache integration has its own isolated temporary-directory test.
+        self.fetcher.persistent_cache = None
 
     def test_detect_a_stock_market(self):
         """测试A股市场检测"""

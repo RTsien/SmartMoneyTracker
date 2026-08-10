@@ -14,24 +14,30 @@ the source of truth for setup, usage, and the public roadmap.
 - English/Chinese web interface, defaulting to English
 - Single-stock and batch analysis with in-memory daily-data caching
 - Point-in-time signal backtesting on AkQuant with next-open execution
+- Interactive equity, benchmark, drawdown, and signal-score charts
+- Rolling out-of-sample validation and parameter-sensitivity reports
+- Cross-process compressed TTL caching
+- Bounded, provider-aware concurrent batch scanning
+- Market-aware end-of-day scheduling and duplicate-safe alert delivery
+- SQLite disclosure snapshots filtered by publication time in structural backtests
 - Automated unit and integration tests
 
 ## Backtesting boundary
 
-The backtesting MVP includes only price-volume and technical-indicator signals.
-It deliberately excludes institutional holdings, shareholder disclosures, news,
-and other structural inputs until point-in-time snapshots and publication dates
-are available. This prevents current knowledge from leaking into historical
-decisions.
+Price-volume and technical-indicator signals are always available to the
+backtester. Structural signals are opt-in and can only read records already
+captured in the publication-time SQLite store. Records without a trustworthy
+publication date become visible from their actual collection time, never from a
+guessed historical date.
 
-## Active roadmap
+## Completed roadmap
 
-- [ ] Add equity, drawdown, benchmark, and signal charts for backtest results
-- [ ] Add persistent TTL caching across application processes
-- [ ] Add bounded concurrent batch processing with provider-aware rate limits
-- [ ] Add scheduled end-of-day scans and configurable alerts
-- [ ] Add walk-forward/out-of-sample validation and parameter-sensitivity reports
-- [ ] Add point-in-time disclosure storage before backtesting structural signals
+- [x] Add equity, drawdown, benchmark, and signal charts for backtest results
+- [x] Add persistent TTL caching across application processes
+- [x] Add bounded concurrent batch processing with provider-aware rate limits
+- [x] Add scheduled end-of-day scans and configurable alerts
+- [x] Add walk-forward/out-of-sample validation and parameter-sensitivity reports
+- [x] Add point-in-time disclosure storage before backtesting structural signals
 
 ## Deferred or out of scope
 

@@ -103,7 +103,14 @@ SmartMoneyTracker/
 │
 ├── backtesting/                   # Point-in-time backtesting layer
 │   ├── __init__.py
-│   └── engine.py                  # AKQuant event-driven signal backtester
+│   ├── engine.py                  # AKQuant event-driven signal backtester
+│   └── validation.py              # Rolling out-of-sample validation
+│
+├── disclosures/                   # Publication-time disclosure storage
+├── monitoring/                    # End-of-day scheduling and alerts
+├── backtest.py                    # Backtest and validation CLI
+├── monitor.py                     # Scheduled-monitor CLI
+├── snapshot_disclosures.py        # Point-in-time snapshot collector
 │
 ├── reporting/                     # Reporting layer
 │   ├── __init__.py
@@ -166,6 +173,7 @@ The web interface provides:
 - 📈 Visual scores and signals
 - 🔄 Single-stock and batch analysis
 - 📱 A responsive layout for desktop and mobile devices
+- 📉 Interactive strategy, benchmark, drawdown, and signal-score charts
 
 #### Command Line and Python API
 
@@ -216,10 +224,37 @@ trade count. Commission and slippage are enabled by default and configurable:
 python3 backtest.py AAPL --commission-bps 10 --slippage-bps 5 --json
 ```
 
-Only price-volume and technical-indicator signals are included in this MVP.
-Ownership disclosures and other structural data are excluded until the data
-layer can guarantee point-in-time snapshots, avoiding publication-date and
-survivorship bias.
+Price-volume and technical-indicator signals are included by default. Structural
+signals are opt-in and can only read disclosures captured in the point-in-time
+store, avoiding publication-date and survivorship bias.
+
+Run rolling out-of-sample validation. Each fold selects its rebalance frequency
+using only its training window and evaluates it on the following unseen window:
+
+```bash
+python3 backtest.py 600519.SH --period 2000 --walk-forward \
+  --train-bars 504 --test-bars 126 --step-bars 126 \
+  --candidates 1,5,20
+```
+
+The sensitivity table compares every candidate on the same out-of-sample folds.
+
+#### End-of-Day Monitoring and Point-in-Time Disclosures
+
+```bash
+# Capture disclosures with their publication timestamps
+python3 snapshot_disclosures.py 600519.SH
+
+# Include only disclosures already public at each historical decision
+python3 backtest.py 600519.SH --include-structural
+
+# Run all configured markets once, or keep the scheduler running
+python3 monitor.py --once
+python3 monitor.py
+```
+
+The scheduler uses separate A-share, Hong Kong, and US market times, suppresses
+duplicate alerts, writes JSONL locally, and optionally posts to a webhook.
 
 ### Example Output
 
@@ -410,22 +445,23 @@ The project is based on a detailed smart-money analysis framework:
 - [x] Relative-strength analysis
 - [x] Institutional ownership data for US and Hong Kong stocks
 
-### Phase 4: Aggregation and Reporting
+### Phase 4: Aggregation and Reporting ✅
 
 - [x] Risk-scoring system
 - [x] Report generator
-- [ ] Backtest equity, drawdown, and signal visualizations
+- [x] Backtest equity, benchmark, drawdown, and signal visualizations
 
-### Phase 5: Optimization and Expansion
+### Phase 5: Optimization and Expansion ✅
 
 - [x] In-memory daily-data caching
-- [ ] Persistent TTL caching across processes
-- [ ] Bounded concurrent batch processing with rate limiting
-- [ ] Scheduled end-of-day scans and alerts
+- [x] Persistent TTL caching across processes
+- [x] Bounded concurrent batch processing with provider-aware rate limiting
+- [x] Scheduled end-of-day scans, duplicate suppression, and configurable alerts
 - [x] Web interface
 - [x] Unit tests
 - [x] Point-in-time backtesting MVP with AKQuant next-open execution
-- [ ] Walk-forward validation and parameter-sensitivity reports
+- [x] Walk-forward validation and out-of-sample parameter-sensitivity reports
+- [x] Publication-time disclosure storage for structural-signal backtests
 
 ## 🧪 Testing
 

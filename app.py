@@ -11,6 +11,7 @@ import json
 import numpy as np
 
 from main import SmartMoneyScanner
+from backtesting import SignalBacktestConfig, SignalBacktester
 import config
 
 # 配置日志
@@ -26,6 +27,7 @@ CORS(app)
 
 # 初始化扫描器
 scanner = SmartMoneyScanner()
+backtester = SignalBacktester(config, scanner.data_fetcher)
 
 @app.route('/')
 def index():
@@ -174,6 +176,52 @@ def analyze_batch():
             'success': False,
             'error': str(e)
         }), 500
+
+
+@app.route('/api/backtest', methods=['POST'])
+def run_signal_backtest():
+    """Run the point-in-time signal strategy and return chart-ready data."""
+    try:
+        data = request.get_json(silent=True) or {}
+        ticker = str(data.get('ticker', '')).strip().upper()
+        if not ticker:
+            return jsonify({
+                'success': False,
+                'error': '请输入股票代码'
+            }), 400
+
+        period = max(200, min(int(data.get('period', 1000)), 3000))
+        warmup = max(60, min(int(data.get('warmup', 120)), 250))
+        rebalance = max(1, min(int(data.get('rebalance', 5)), 20))
+        settings = SignalBacktestConfig(
+            initial_cash=1_000_000.0,
+            warmup_period=warmup,
+            rebalance_every=rebalance,
+        )
+        logger.info("Web API: 开始回测 %s", ticker)
+        run = backtester.run(
+            ticker=ticker,
+            period=period,
+            settings=settings,
+        )
+        payload = run.to_dict(include_series=True)
+        payload.update({
+            'success': True,
+            'stock_name': scanner.data_fetcher.get_stock_name(ticker),
+            'timestamp': datetime.now().isoformat(),
+        })
+        logger.info(
+            "Web API: %s 回测完成 - 收益率 %.2f%%",
+            ticker,
+            payload['summary']['total_return'] * 100,
+        )
+        return jsonify(convert_to_json_serializable(payload))
+    except (TypeError, ValueError) as e:
+        logger.warning("Web API 回测参数或数据错误: %s", e)
+        return jsonify({'success': False, 'error': str(e)}), 400
+    except Exception as e:
+        logger.error("Web API 回测错误: %s", e, exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/config', methods=['GET'])
 def get_config():

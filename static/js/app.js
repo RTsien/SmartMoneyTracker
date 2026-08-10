@@ -20,12 +20,37 @@ const translations = {
         days120: '120 days',
         days250: '250 days',
         days500: '500 days',
+        days1000: '1,000 days',
+        days2000: '2,000 days',
         structureAnalysis: 'Enable structural signal analysis',
         analyze: 'Analyze',
         batchAnalysis: 'Batch Analysis',
         batchTickerLabel: 'Ticker list (one per line)',
         batchPlaceholder: '600519.SH\n000858.SZ\nAAPL',
         batchAnalyze: 'Analyze Batch',
+        historicalBacktest: 'Historical Backtest',
+        backtestPeriod: 'History',
+        rebalanceFrequency: 'Signal Frequency',
+        everyDay: 'Every trading day',
+        everyWeek: 'Every 5 trading days',
+        everyMonth: 'Every 20 trading days',
+        runBacktest: 'Run Backtest',
+        backtestNote: "Signals use only information available at the time; orders fill at the next bar's open.",
+        nextOpenExecution: 'Next-open execution',
+        equityVsBenchmark: 'Strategy vs Buy & Hold',
+        strategy: 'Strategy',
+        benchmark: 'Buy & Hold',
+        drawdown: 'Drawdown',
+        signalScore: 'Signal Score',
+        totalReturn: 'Net Return',
+        excessReturn: 'Excess Return',
+        sharpeRatio: 'Sharpe Ratio',
+        maxDrawdown: 'Max Drawdown',
+        winRate: 'Win Rate',
+        closedTrades: 'Closed Trades',
+        backtestDisclaimer: 'Historical results are not indicative of future performance. Structural disclosure signals are excluded from this backtest.',
+        backtesting: 'Running backtest...',
+        backtestFailed: 'Backtest failed. Please try again.',
         results: 'Analysis Results',
         clear: 'Clear',
         inflowSignals: 'Inflow Signals',
@@ -72,12 +97,37 @@ const translations = {
         days120: '120 天',
         days250: '250 天',
         days500: '500 天',
+        days1000: '1,000 天',
+        days2000: '2,000 天',
         structureAnalysis: '启用结构性信号分析',
         analyze: '开始分析',
         batchAnalysis: '批量分析',
         batchTickerLabel: '股票代码列表（每行一个）',
         batchPlaceholder: '600519.SH\n000858.SZ\nAAPL',
         batchAnalyze: '批量分析',
+        historicalBacktest: '历史回测',
+        backtestPeriod: '历史区间',
+        rebalanceFrequency: '信号频率',
+        everyDay: '每个交易日',
+        everyWeek: '每 5 个交易日',
+        everyMonth: '每 20 个交易日',
+        runBacktest: '运行回测',
+        backtestNote: '每个决策点只使用当时已知信息，订单在下一根 K 线开盘成交。',
+        nextOpenExecution: '下一根开盘成交',
+        equityVsBenchmark: '策略与买入持有对比',
+        strategy: '策略',
+        benchmark: '买入持有',
+        drawdown: '回撤',
+        signalScore: '信号评分',
+        totalReturn: '净收益',
+        excessReturn: '超额收益',
+        sharpeRatio: 'Sharpe 比率',
+        maxDrawdown: '最大回撤',
+        winRate: '胜率',
+        closedTrades: '闭合交易',
+        backtestDisclaimer: '历史结果不代表未来表现。当前回测不包含结构性披露信号。',
+        backtesting: '正在运行回测...',
+        backtestFailed: '回测失败，请稍后重试',
         results: '分析结果',
         clear: '清除',
         inflowSignals: '进场信号',
@@ -201,10 +251,12 @@ let currentLanguage = localStorage.getItem(LANGUAGE_STORAGE_KEY) || DEFAULT_LANG
 if (!translations[currentLanguage]) currentLanguage = DEFAULT_LANGUAGE;
 let lastSingleResult = null;
 let lastBatchResult = null;
+let lastBacktestResult = null;
 
 // DOM Elements
 const analyzeBtn = document.getElementById('analyzeBtn');
 const batchAnalyzeBtn = document.getElementById('batchAnalyzeBtn');
+const backtestBtn = document.getElementById('backtestBtn');
 const clearBtn = document.getElementById('clearBtn');
 const tickerInput = document.getElementById('ticker');
 const periodSelect = document.getElementById('period');
@@ -213,6 +265,7 @@ const batchTickersTextarea = document.getElementById('batch_tickers');
 const resultsSection = document.getElementById('resultsSection');
 const singleResult = document.getElementById('singleResult');
 const batchResults = document.getElementById('batchResults');
+const backtestResults = document.getElementById('backtestResults');
 const loadingIndicator = document.getElementById('loadingIndicator');
 const errorMessage = document.getElementById('errorMessage');
 const languageBtnEn = document.getElementById('languageBtnEn');
@@ -255,11 +308,15 @@ function applyLanguage(language, options = {}) {
     if (rerender && lastBatchResult && batchResults.style.display !== 'none') {
         displayBatchResults(lastBatchResult, false);
     }
+    if (rerender && lastBacktestResult && backtestResults.style.display !== 'none') {
+        displayBacktestResult(lastBacktestResult, false);
+    }
 }
 
 // Event Listeners
 analyzeBtn.addEventListener('click', analyzeSingleStock);
 batchAnalyzeBtn.addEventListener('click', analyzeBatchStocks);
+backtestBtn.addEventListener('click', runBacktest);
 clearBtn.addEventListener('click', clearResults);
 languageBtnEn.addEventListener('click', () => applyLanguage('en'));
 languageBtnZh.addEventListener('click', () => applyLanguage('zh-CN'));
@@ -364,15 +421,50 @@ async function analyzeBatchStocks() {
     }
 }
 
+async function runBacktest() {
+    const ticker = tickerInput.value.trim().toUpperCase();
+    if (!ticker) {
+        showError(t('tickerRequired'));
+        return;
+    }
+
+    showLoading('backtesting');
+    hideError();
+    try {
+        const response = await fetch(`${API_BASE}/api/backtest`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                ticker,
+                period: parseInt(document.getElementById('backtest_period').value),
+                warmup: 120,
+                rebalance: parseInt(document.getElementById('backtest_rebalance').value)
+            })
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+            throw new Error(translateApiError(data.error, 'backtestFailed'));
+        }
+        displayBacktestResult(data);
+    } catch (error) {
+        console.error('Backtest error:', error);
+        showError(error.message || t('backtestFailed'));
+    } finally {
+        hideLoading();
+    }
+}
+
 // Display Single Result
 function displaySingleResult(data, shouldScroll = true) {
     lastSingleResult = data;
     lastBatchResult = null;
+    lastBacktestResult = null;
 
     // Show results section
     resultsSection.style.display = 'block';
     singleResult.style.display = 'block';
     batchResults.style.display = 'none';
+    backtestResults.style.display = 'none';
 
     // Scroll to results
     if (shouldScroll) {
@@ -427,11 +519,13 @@ function displaySingleResult(data, shouldScroll = true) {
 function displayBatchResults(data, shouldScroll = true) {
     lastBatchResult = data;
     lastSingleResult = null;
+    lastBacktestResult = null;
 
     // Show results section
     resultsSection.style.display = 'block';
     singleResult.style.display = 'none';
     batchResults.style.display = 'block';
+    backtestResults.style.display = 'none';
 
     // Scroll to results
     if (shouldScroll) {
@@ -449,6 +543,143 @@ function displayBatchResults(data, shouldScroll = true) {
         const item = createBatchResultItem(result);
         batchResultsList.appendChild(item);
     });
+}
+
+function displayBacktestResult(data, shouldScroll = true) {
+    lastBacktestResult = data;
+    lastSingleResult = null;
+    lastBatchResult = null;
+    resultsSection.style.display = 'block';
+    singleResult.style.display = 'none';
+    batchResults.style.display = 'none';
+    backtestResults.style.display = 'block';
+
+    if (shouldScroll) {
+        resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    document.getElementById('backtestTicker').textContent = getDisplayName(
+        data.ticker,
+        data.stock_name
+    );
+    document.getElementById('backtestRange').textContent =
+        `${data.summary.start_date} — ${data.summary.end_date}`;
+
+    const metrics = [
+        ['totalReturn', formatPercent(data.summary.total_return), metricTone(data.summary.total_return)],
+        ['excessReturn', formatPercent(data.summary.excess_return), metricTone(data.summary.excess_return)],
+        ['sharpeRatio', Number(data.summary.sharpe_ratio).toFixed(2), metricTone(data.summary.sharpe_ratio)],
+        ['maxDrawdown', formatPercent(data.summary.max_drawdown), 'negative'],
+        ['winRate', formatPercent(data.summary.win_rate, false), 'neutral'],
+        ['closedTrades', String(data.summary.trade_count), 'neutral']
+    ];
+    document.getElementById('backtestMetrics').innerHTML = metrics.map(([key, value, tone]) => `
+        <div class="metric-card">
+            <span class="metric-label">${escapeHtml(t(key))}</span>
+            <strong class="metric-value ${tone}">${escapeHtml(value)}</strong>
+        </div>
+    `).join('');
+
+    renderLineChart('equityChart', data.series || [], [
+        { key: 'strategy', color: '#29d69c' },
+        { key: 'benchmark', color: '#84909e' }
+    ]);
+    renderLineChart('drawdownChart', data.series || [], [
+        { key: 'drawdown', color: '#ff5b6e', fill: true }
+    ], { includeZero: true, percentAxis: true });
+    renderSignalChart(data.signals || []);
+}
+
+function metricTone(value) {
+    const number = Number(value);
+    return number > 0 ? 'positive' : number < 0 ? 'negative' : 'neutral';
+}
+
+function formatPercent(value, showPositiveSign = true) {
+    const number = Number(value || 0) * 100;
+    return `${showPositiveSign && number > 0 ? '+' : ''}${number.toFixed(2)}%`;
+}
+
+function renderLineChart(svgId, rows, datasets, options = {}) {
+    const svg = document.getElementById(svgId);
+    svg.replaceChildren();
+    if (!rows.length) return;
+
+    const width = 1000;
+    const height = svg.classList.contains('compact') ? 220 : 280;
+    const padding = { left: 64, right: 22, top: 20, bottom: 34 };
+    const values = datasets.flatMap(dataset =>
+        rows.map(row => Number(row[dataset.key])).filter(Number.isFinite)
+    );
+    if (options.includeZero) values.push(0);
+    let min = options.min ?? Math.min(...values);
+    let max = options.max ?? Math.max(...values);
+    if (min === max) {
+        min -= 1;
+        max += 1;
+    }
+    if (options.min === undefined && options.max === undefined) {
+        const margin = (max - min) * 0.08;
+        min -= margin;
+        max += margin;
+    }
+    const x = index => padding.left + index / Math.max(rows.length - 1, 1) * (width - padding.left - padding.right);
+    const y = value => padding.top + (max - value) / (max - min) * (height - padding.top - padding.bottom);
+
+    for (let index = 0; index <= 4; index += 1) {
+        const value = max - index / 4 * (max - min);
+        const gridY = y(value);
+        appendSvg(svg, 'line', { x1: padding.left, y1: gridY, x2: width - padding.right, y2: gridY, class: 'chart-grid-line' });
+        const label = options.percentAxis ? `${value.toFixed(1)}%` : value.toFixed(0);
+        appendSvg(svg, 'text', { x: padding.left - 10, y: gridY + 4, class: 'chart-axis-label', 'text-anchor': 'end' }, label);
+    }
+
+    datasets.forEach(dataset => {
+        const points = rows.map((row, index) => [x(index), y(Number(row[dataset.key]))]);
+        const path = points.map(([pointX, pointY], index) => `${index ? 'L' : 'M'}${pointX.toFixed(2)},${pointY.toFixed(2)}`).join(' ');
+        if (dataset.fill) {
+            const baseline = y(0);
+            const area = `${path} L${points.at(-1)[0].toFixed(2)},${baseline.toFixed(2)} L${points[0][0].toFixed(2)},${baseline.toFixed(2)} Z`;
+            appendSvg(svg, 'path', { d: area, fill: dataset.color, opacity: '0.12' });
+        }
+        appendSvg(svg, 'path', { d: path, fill: 'none', stroke: dataset.color, 'stroke-width': '2.5', 'vector-effect': 'non-scaling-stroke' });
+    });
+
+    const firstDate = new Date(rows[0].date).toLocaleDateString(currentLanguage === 'en' ? 'en-US' : 'zh-CN');
+    const lastDate = new Date(rows.at(-1).date).toLocaleDateString(currentLanguage === 'en' ? 'en-US' : 'zh-CN');
+    appendSvg(svg, 'text', { x: padding.left, y: height - 8, class: 'chart-axis-label' }, firstDate);
+    appendSvg(svg, 'text', { x: width - padding.right, y: height - 8, class: 'chart-axis-label', 'text-anchor': 'end' }, lastDate);
+}
+
+function renderSignalChart(signals) {
+    const svg = document.getElementById('signalChart');
+    svg.replaceChildren();
+    if (!signals.length) return;
+    renderLineChart('signalChart', signals, [{ key: 'score', color: '#84909e' }], {
+        includeZero: true,
+        min: -10,
+        max: 10
+    });
+    const width = 1000;
+    const height = 220;
+    const padding = { left: 64, right: 22, top: 20, bottom: 34 };
+    const x = index => padding.left + index / Math.max(signals.length - 1, 1) * (width - padding.left - padding.right);
+    const y = value => padding.top + (10 - value) / 20 * (height - padding.top - padding.bottom);
+    signals.forEach((signal, index) => {
+        const score = Number(signal.score);
+        appendSvg(svg, 'circle', {
+            cx: x(index), cy: y(score), r: 4,
+            fill: score > 1 ? '#29d69c' : score < -1 ? '#ff5b6e' : '#84909e'
+        });
+    });
+}
+
+function appendSvg(svg, tag, attributes, textContent = '') {
+    const element = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    Object.entries(attributes).forEach(([key, value]) => element.setAttribute(key, value));
+    if (textContent) element.textContent = textContent;
+    svg.appendChild(element);
+    return element;
 }
 
 // Create Batch Result Item
@@ -681,15 +912,19 @@ function clearResults() {
     resultsSection.style.display = 'none';
     singleResult.style.display = 'none';
     batchResults.style.display = 'none';
+    backtestResults.style.display = 'none';
     lastSingleResult = null;
     lastBatchResult = null;
+    lastBacktestResult = null;
 }
 
 // Show Loading
-function showLoading() {
+function showLoading(messageKey = 'analyzing') {
     loadingIndicator.style.display = 'flex';
+    loadingIndicator.querySelector('p').textContent = t(messageKey);
     analyzeBtn.disabled = true;
     batchAnalyzeBtn.disabled = true;
+    backtestBtn.disabled = true;
 }
 
 // Hide Loading
@@ -697,6 +932,7 @@ function hideLoading() {
     loadingIndicator.style.display = 'none';
     analyzeBtn.disabled = false;
     batchAnalyzeBtn.disabled = false;
+    backtestBtn.disabled = false;
 }
 
 // Show Error

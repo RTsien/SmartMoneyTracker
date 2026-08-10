@@ -10,6 +10,8 @@ from typing import Optional, Dict, Any, Tuple
 from datetime import datetime, timedelta
 import logging
 
+from data_fetcher.cache import DataFrameTTLCache
+
 # 配置日志
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -41,6 +43,17 @@ class DataFetcher:
 
         self.request_timeout = getattr(config, 'DATA_REQUEST_TIMEOUT', 15)
         self.cache_enabled = getattr(config, 'CACHE_ENABLED', True)
+        self.persistent_cache_enabled = getattr(
+            config, 'PERSISTENT_CACHE_ENABLED', True
+        )
+        self.cache_expiry_seconds = float(
+            getattr(config, 'CACHE_EXPIRY_DAYS', 1)
+        ) * 86400.0
+        self.persistent_cache = (
+            DataFrameTTLCache(getattr(config, 'CACHE_DIR', './cache'))
+            if self.cache_enabled and self.persistent_cache_enabled
+            else None
+        )
         self._daily_data_cache: Dict[Tuple[str, str, str], pd.DataFrame] = {}
         self.tushare_token = config.TUSHARE_TOKEN
         self.ts_api = None
@@ -290,6 +303,17 @@ class DataFetcher:
             logger.info("使用内存缓存获取 %s 日线数据", ticker)
             return self._daily_data_cache[cache_key].copy(deep=True)
 
+        if self.persistent_cache is not None:
+            cached = self.persistent_cache.get(
+                "daily",
+                cache_key,
+                self.cache_expiry_seconds,
+            )
+            if cached is not None and not cached.empty:
+                logger.info("使用持久化缓存获取 %s 日线数据", ticker)
+                self._daily_data_cache[cache_key] = cached.copy(deep=True)
+                return cached.copy(deep=True)
+
         try:
             if market == 'A_STOCK':
                 df = self._get_a_stock_daily(ticker, start_date, end_date)
@@ -300,6 +324,11 @@ class DataFetcher:
 
             if self.cache_enabled and not df.empty:
                 self._daily_data_cache[cache_key] = df.copy(deep=True)
+                if self.persistent_cache is not None:
+                    try:
+                        self.persistent_cache.set("daily", cache_key, df)
+                    except OSError as e:
+                        logger.warning("写入 %s 持久化缓存失败: %s", ticker, e)
             return df
         except Exception as e:
             logger.error(f"获取 {ticker} 数据失败: {e}")

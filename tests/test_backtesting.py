@@ -80,11 +80,15 @@ class TestSignalBacktester(unittest.TestCase):
         run = SignalBacktester(
             config, self.fetcher, evaluator=self.trend_evaluator
         ).run("TEST", data=make_prices(), settings=self.settings)
-        payload = run.to_dict()
+        payload = run.to_dict(include_series=True)
 
         self.assertEqual(payload["ticker"], "TEST")
         self.assertIn("summary", payload)
         self.assertGreater(len(payload["signals"]), 0)
+        self.assertGreater(len(payload["series"]), 0)
+        self.assertIn("strategy", payload["series"][0])
+        self.assertIn("benchmark", payload["series"][0])
+        self.assertIn("drawdown", payload["series"][0])
         json.dumps(payload)
 
 

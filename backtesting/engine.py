@@ -31,6 +31,7 @@ class SignalBacktestConfig:
     commission_bps: float = 10.0
     slippage_bps: float = 5.0
     risk_free_rate: float = 0.0
+    include_structural: bool = False
 
     def __post_init__(self) -> None:
         if self.initial_cash <= 0:
@@ -54,6 +55,8 @@ class BacktestRun:
     summary: Dict[str, Any]
     signals: pd.DataFrame
     equity_curve: pd.Series
+    benchmark_curve: pd.Series
+    drawdown_curve: pd.Series
     orders: pd.DataFrame
     trades: pd.DataFrame
     raw_result: Any
@@ -66,25 +69,51 @@ class BacktestRun:
             "signals": self.signals.to_dict(orient="records"),
         }
         if include_series:
-            result["equity_curve"] = [
-                {"date": index.isoformat(), "equity": float(value)}
-                for index, value in self.equity_curve.items()
-            ]
+            result["series"] = self._chart_records()
             result["orders"] = self._records(self.orders)
             result["trades"] = self._records(self.trades)
         return result
+
+    def _chart_records(self) -> list[Dict[str, Any]]:
+        if self.equity_curve.empty:
+            return []
+        start = min(self.config.warmup_period, len(self.equity_curve) - 1)
+        equity = self.equity_curve.iloc[start:].astype(float)
+        strategy_index = equity / float(self.config.initial_cash) * 100.0
+        benchmark = self.benchmark_curve.reindex(equity.index).ffill().fillna(100.0)
+        drawdown = self.drawdown_curve.reindex(equity.index).fillna(0.0) * 100.0
+        return [
+            {
+                "date": index.isoformat(),
+                "strategy": float(strategy_index.loc[index]),
+                "benchmark": float(benchmark.loc[index]),
+                "drawdown": float(drawdown.loc[index]),
+            }
+            for index in equity.index
+        ]
 
     @staticmethod
     def _records(frame: pd.DataFrame) -> list[Dict[str, Any]]:
         if frame.empty:
             return []
-        clean = frame.copy()
-        for column in clean.columns:
-            if pd.api.types.is_datetime64_any_dtype(clean[column]):
-                clean[column] = clean[column].map(
-                    lambda value: value.isoformat() if pd.notna(value) else None
-                )
-        return clean.replace({np.nan: None}).to_dict(orient="records")
+        return [
+            {key: BacktestRun._json_value(value) for key, value in record.items()}
+            for record in frame.to_dict(orient="records")
+        ]
+
+    @staticmethod
+    def _json_value(value: Any) -> Any:
+        if value is None or isinstance(value, (bool, int, float, str)):
+            if isinstance(value, float) and np.isnan(value):
+                return None
+            return value
+        if isinstance(value, (pd.Timestamp,)):
+            return value.isoformat()
+        if isinstance(value, (pd.Timedelta,)):
+            return str(value)
+        if isinstance(value, np.generic):
+            return value.item()
+        return str(value)
 
 
 class SignalBacktester:
@@ -97,6 +126,7 @@ class SignalBacktester:
         app_config: Any,
         data_fetcher: Any,
         evaluator: Optional[SignalEvaluator] = None,
+        disclosure_store: Optional[Any] = None,
     ) -> None:
         self.app_config = app_config
         self.data_fetcher = data_fetcher
@@ -104,6 +134,8 @@ class SignalBacktester:
         self.indicators = IndicatorSignals(app_config)
         self.aggregator = SignalAggregator(app_config)
         self.evaluator = evaluator or self._evaluate_signals
+        self._custom_evaluator = evaluator is not None
+        self.disclosure_store = disclosure_store
 
     def run(
         self,
@@ -127,6 +159,10 @@ class SignalBacktester:
             ticker, period=period
         )
         frame = self._prepare_data(source, settings.warmup_period)
+        if settings.include_structural and self.disclosure_store is None:
+            raise ValueError(
+                "include_structural requires a point-in-time DisclosureStore"
+            )
         signal_log: list[Dict[str, Any]] = []
         decision_count = 0
         target = 0.0
@@ -138,7 +174,16 @@ class SignalBacktester:
                 return
 
             history = self._history_frame(context, bar, settings.warmup_period)
-            evaluation = self.evaluator(history)
+            timestamp = pd.to_datetime(bar.timestamp, unit="ns", utc=True)
+            if self._custom_evaluator:
+                evaluation = self.evaluator(history)
+            else:
+                evaluation = self._evaluate_signals(
+                    history,
+                    ticker=ticker,
+                    as_of=timestamp,
+                    include_structural=settings.include_structural,
+                )
             rating = str(evaluation.get("rating", "NEUTRAL"))
             score = float(evaluation.get("score", 0.0))
             desired_target = target
@@ -147,7 +192,6 @@ class SignalBacktester:
             elif rating in {"SELL", "STRONG_SELL"}:
                 desired_target = 0.0
 
-            timestamp = pd.to_datetime(bar.timestamp, unit="ns", utc=True)
             signal_log.append({
                 "date": timestamp.isoformat(),
                 "score": score,
@@ -191,21 +235,43 @@ class SignalBacktester:
             settings=settings,
             akquant_version=akquant_version,
         )
+        benchmark_curve = self._benchmark_curve(
+            frame=frame,
+            equity_index=equity.index,
+            warmup_period=settings.warmup_period,
+        )
+        drawdown_curve = equity / equity.cummax() - 1.0
         return BacktestRun(
             ticker=ticker,
             config=settings,
             summary=summary,
             signals=signals,
             equity_curve=equity,
+            benchmark_curve=benchmark_curve,
+            drawdown_curve=drawdown_curve,
             orders=orders,
             trades=trades,
             raw_result=result,
         )
 
-    def _evaluate_signals(self, history: pd.DataFrame) -> Dict[str, Any]:
+    def _evaluate_signals(
+        self,
+        history: pd.DataFrame,
+        ticker: Optional[str] = None,
+        as_of: Optional[Any] = None,
+        include_structural: bool = False,
+    ) -> Dict[str, Any]:
         enriched = self.data_fetcher.calculate_technical_indicators(history)
         signals = self.price_volume.analyze(enriched)
         signals.update(self.indicators.analyze(enriched))
+        if include_structural:
+            from disclosures import PointInTimeStructuralAnalyzer
+
+            signals.update(
+                PointInTimeStructuralAnalyzer(
+                    self.app_config, self.disclosure_store
+                ).analyze(str(ticker), as_of)
+            )
         return self.aggregator.calculate_score(signals)
 
     @classmethod
@@ -235,6 +301,25 @@ class SignalBacktester:
         if (frame["volume"] < 0).any():
             raise ValueError("Volume cannot be negative")
         return frame
+
+    @staticmethod
+    def _benchmark_curve(
+        frame: pd.DataFrame,
+        equity_index: pd.Index,
+        warmup_period: int,
+    ) -> pd.Series:
+        """Build a buy-and-hold index using the same next-open start point."""
+        entry = min(warmup_period, len(frame) - 1)
+        values = np.full(len(frame), 100.0, dtype=float)
+        values[entry:] = (
+            frame["close"].iloc[entry:].to_numpy(dtype=float)
+            / float(frame["open"].iloc[entry])
+            * 100.0
+        )
+        if len(equity_index) != len(values):
+            size = min(len(equity_index), len(values))
+            return pd.Series(values[-size:], index=equity_index[-size:], name="benchmark")
+        return pd.Series(values, index=equity_index, name="benchmark")
 
     @staticmethod
     def _history_frame(context: Any, bar: Any, count: int) -> pd.DataFrame:

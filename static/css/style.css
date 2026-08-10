@@ -841,6 +841,168 @@ textarea.input-field {
     font-size: 0.68rem;
 }
 
+/* Point-in-time backtest workspace */
+.backtest-settings {
+    margin-bottom: 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.backtest-note,
+.backtest-disclaimer {
+    margin-top: 10px;
+    color: var(--text-tertiary);
+    font-size: 0.72rem;
+}
+
+.backtest-result-header,
+.chart-heading,
+.chart-legend {
+    display: flex;
+    align-items: center;
+}
+
+.backtest-result-header {
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.backtest-result-header h3 {
+    font-size: 1.05rem;
+}
+
+.execution-badge {
+    padding: 5px 9px;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: 1px solid rgba(41, 214, 156, 0.2);
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 650;
+}
+
+.metric-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.metric-card {
+    min-width: 0;
+    padding: 12px;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+}
+
+.metric-label,
+.metric-value {
+    display: block;
+}
+
+.metric-label {
+    margin-bottom: 5px;
+    overflow: hidden;
+    color: var(--text-tertiary);
+    font-size: 0.67rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.metric-value {
+    font-size: 1rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.metric-value.positive {
+    color: var(--accent);
+}
+
+.metric-value.negative {
+    color: var(--danger-color);
+}
+
+.metric-value.neutral {
+    color: var(--text-primary);
+}
+
+.chart-panel {
+    padding: 14px;
+    overflow: hidden;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+}
+
+.chart-panel h4 {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    font-weight: 620;
+}
+
+.chart-heading {
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.chart-legend {
+    gap: 12px;
+    color: var(--text-tertiary);
+    font-size: 0.66rem;
+}
+
+.chart-legend > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.legend-dot {
+    width: 7px;
+    height: 7px;
+    display: inline-block;
+    border-radius: 50%;
+}
+
+.legend-dot.strategy {
+    background: var(--accent);
+}
+
+.legend-dot.benchmark {
+    background: var(--neutral-color);
+}
+
+.backtest-chart {
+    width: 100%;
+    min-height: 220px;
+    display: block;
+    margin-top: 8px;
+}
+
+.backtest-chart.compact {
+    min-height: 170px;
+}
+
+.chart-grid-line {
+    stroke: var(--border);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+}
+
+.chart-axis-label {
+    fill: var(--text-tertiary);
+    font-size: 16px;
+    font-variant-numeric: tabular-nums;
+}
+
+.chart-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
 /* Feedback */
 .loading-overlay {
     position: fixed;
@@ -986,8 +1148,20 @@ textarea.input-field {
     }
 
     .form-row,
-    .signals-details {
+    .signals-details,
+    .backtest-settings,
+    .chart-grid {
         grid-template-columns: 1fr;
+    }
+
+    .metric-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .backtest-result-header,
+    .chart-heading {
+        align-items: flex-start;
+        flex-direction: column;
     }
 
     .checkbox-label {

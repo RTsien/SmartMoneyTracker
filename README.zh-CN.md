@@ -103,7 +103,14 @@ SmartMoneyTracker/
 │
 ├── backtesting/                   # 时点安全回测层
 │   ├── __init__.py
-│   └── engine.py                  # AkQuant 事件驱动信号回测器
+│   ├── engine.py                  # AkQuant 事件驱动信号回测器
+│   └── validation.py              # 滚动样本外验证
+│
+├── disclosures/                   # 公告时点披露存储
+├── monitoring/                    # 收盘后调度和告警
+├── backtest.py                    # 回测与验证命令行
+├── monitor.py                     # 定时监控命令行
+├── snapshot_disclosures.py        # 时点快照采集
 │
 └── reporting/                      # 报告生成层
     ├── __init__.py
@@ -168,6 +175,7 @@ python app.py
 - 📈 可视化评分和信号
 - 🔄 支持单股和批量分析
 - 📱 响应式设计，支持移动设备
+- 📉 策略、基准、回撤和信号评分交互图表
 
 #### 方式二：命令行
 
@@ -211,8 +219,36 @@ python3 backtest.py 600519.SH --period 1000 --warmup 120
 python3 backtest.py AAPL --commission-bps 10 --slippage-bps 5 --json
 ```
 
-当前 MVP 只纳入价量和技术指标信号。股东披露等结构性数据暂不进入历史回测，
-直到数据层能够提供严格的时点快照，以避免公告日期偏差和幸存者偏差。
+价量和技术指标信号默认纳入回测。结构性信号需要显式开启，并且只能读取时点
+数据库中当时已经公开的披露记录，避免公告日期偏差和幸存者偏差。
+
+运行滚动样本外验证。每折只用训练窗口选择信号频率，再在紧随其后的未见区间
+评估：
+
+```bash
+python3 backtest.py 600519.SH --period 2000 --walk-forward \
+  --train-bars 504 --test-bars 126 --step-bars 126 \
+  --candidates 1,5,20
+```
+
+敏感性表会把所有候选频率放在相同的样本外窗口比较。
+
+#### 收盘后监控与时点披露
+
+```bash
+# 按公告时间采集披露快照
+python3 snapshot_disclosures.py 600519.SH
+
+# 每个历史决策点只读取当时已公开的结构性数据
+python3 backtest.py 600519.SH --include-structural
+
+# 立即扫描所有市场一次，或持续运行调度器
+python3 monitor.py --once
+python3 monitor.py
+```
+
+调度器分别配置 A 股、港股和美股时间，自动抑制重复告警，写入本地 JSONL，
+也可选配 Webhook。
 
 ### 输出示例
 
@@ -401,20 +437,21 @@ A_STOCK_DATA_SOURCE=tushare python3 main.py 600519.SH
 - [x] 相对强弱分析
 - [x] 港美股机构持股数据获取
 
-### Phase 4: 聚合与报告
+### Phase 4: 聚合与报告 ✅ 已完成
 - [x] 风险评分系统
 - [x] 报告生成器
-- [ ] 回测净值、回撤和信号图表
+- [x] 回测净值、基准、回撤和信号图表
 
-### Phase 5: 优化与扩展
+### Phase 5: 优化与扩展 ✅ 已完成
 - [x] 日线行情进程内缓存
-- [ ] 跨进程持久化 TTL 缓存
-- [ ] 带限流和并发上限的批量处理
-- [ ] 收盘后定时扫描和告警
+- [x] 跨进程持久化 TTL 缓存
+- [x] 带数据源限流和并发上限的批量处理
+- [x] 收盘后定时扫描、重复抑制和可配置告警
 - [x] Web 界面 ✅
 - [x] 单元测试 ✅
 - [x] AkQuant 下一根开盘成交的时点安全回测 MVP
-- [ ] 滚动样本外验证和参数敏感性报告
+- [x] 滚动样本外验证和样本外参数敏感性报告
+- [x] 支持结构性信号回测的公告时点披露存储
 
 ## 🧪 测试
 

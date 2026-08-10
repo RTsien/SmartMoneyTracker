@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartMoneyTracker - Institutional Flow Analysis</title>
     <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260810-longbridge">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=20260810-backtest">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -79,6 +79,34 @@
                             <button id="batchAnalyzeBtn" class="btn btn-secondary">
                                 <i class="fas fa-list"></i> <span data-i18n="batchAnalyze">Analyze Batch</span>
                             </button>
+                        </div>
+                    </details>
+
+                    <details class="batch-section backtest-section">
+                        <summary><i class="fas fa-chart-line"></i> <span data-i18n="historicalBacktest">Historical Backtest</span></summary>
+                        <div class="batch-content">
+                            <div class="form-row backtest-settings">
+                                <div class="form-group">
+                                    <label for="backtest_period" data-i18n="backtestPeriod">History</label>
+                                    <select id="backtest_period" class="input-field">
+                                        <option value="500" data-i18n="days500">500 days</option>
+                                        <option value="1000" selected data-i18n="days1000">1,000 days</option>
+                                        <option value="2000" data-i18n="days2000">2,000 days</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="backtest_rebalance" data-i18n="rebalanceFrequency">Signal Frequency</label>
+                                    <select id="backtest_rebalance" class="input-field">
+                                        <option value="1" data-i18n="everyDay">Every trading day</option>
+                                        <option value="5" selected data-i18n="everyWeek">Every 5 trading days</option>
+                                        <option value="20" data-i18n="everyMonth">Every 20 trading days</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button id="backtestBtn" class="btn btn-secondary">
+                                <i class="fas fa-play"></i> <span data-i18n="runBacktest">Run Backtest</span>
+                            </button>
+                            <p class="backtest-note" data-i18n="backtestNote">Signals use only information available at the time; orders fill at the next bar's open.</p>
                         </div>
                     </details>
                 </div>
@@ -172,6 +200,42 @@
                         </div>
                         <div id="batchResultsList" class="batch-list"></div>
                     </div>
+
+                    <div id="backtestResults" style="display: none;">
+                        <div class="backtest-result-header">
+                            <div>
+                                <h3 id="backtestTicker"></h3>
+                                <span id="backtestRange" class="timestamp"></span>
+                            </div>
+                            <span class="execution-badge" data-i18n="nextOpenExecution">Next-open execution</span>
+                        </div>
+
+                        <div id="backtestMetrics" class="metric-grid"></div>
+
+                        <div class="chart-panel">
+                            <div class="chart-heading">
+                                <h4 data-i18n="equityVsBenchmark">Strategy vs Buy & Hold</h4>
+                                <div class="chart-legend">
+                                    <span><i class="legend-dot strategy"></i><span data-i18n="strategy">Strategy</span></span>
+                                    <span><i class="legend-dot benchmark"></i><span data-i18n="benchmark">Buy & Hold</span></span>
+                                </div>
+                            </div>
+                            <svg id="equityChart" class="backtest-chart" viewBox="0 0 1000 280" role="img" data-i18n-aria-label="equityVsBenchmark"></svg>
+                        </div>
+
+                        <div class="chart-grid">
+                            <div class="chart-panel">
+                                <h4 data-i18n="drawdown">Drawdown</h4>
+                                <svg id="drawdownChart" class="backtest-chart compact" viewBox="0 0 1000 220" role="img" data-i18n-aria-label="drawdown"></svg>
+                            </div>
+                            <div class="chart-panel">
+                                <h4 data-i18n="signalScore">Signal Score</h4>
+                                <svg id="signalChart" class="backtest-chart compact" viewBox="0 0 1000 220" role="img" data-i18n-aria-label="signalScore"></svg>
+                            </div>
+                        </div>
+
+                        <p class="backtest-disclaimer" data-i18n="backtestDisclaimer">Historical results are not indicative of future performance. Structural disclosure signals are excluded from this backtest.</p>
+                    </div>
                 </div>
             </section>
 
@@ -204,6 +268,6 @@
         </footer>
     </div>
 
-    <script src="{{ url_for('static', filename='js/app.js') }}?v=20260810-longbridge"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}?v=20260810-backtest"></script>
 </body>
 </html>

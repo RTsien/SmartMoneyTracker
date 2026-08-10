@@ -17,6 +17,9 @@ from aggregator.scorer import SignalAggregator
 from reporting.generator import ReportGenerator
 
 import logging
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 
@@ -43,6 +46,13 @@ class SmartMoneyScanner:
         self.data_fetcher = DataFetcher(config)
         self.signal_aggregator = SignalAggregator(config)
         self.report_generator = ReportGenerator(config)
+        self.batch_max_workers = getattr(config, 'BATCH_MAX_WORKERS', 3)
+        self.batch_rate_limits = getattr(config, 'BATCH_RATE_LIMIT_SECONDS', {})
+        self._batch_lane_locks = {
+            market: threading.Lock()
+            for market in ('A_STOCK', 'US_STOCK', 'HK_STOCK')
+        }
+        self._batch_lane_started_at = {}
 
         logger.info("✅ SmartMoneyTracker 初始化完成 (评分范围: -10 to +10)")
 
@@ -199,7 +209,8 @@ class SmartMoneyScanner:
         self,
         tickers: List[str],
         period: int = 250,
-        analyze_structure: bool = False
+        analyze_structure: bool = False,
+        max_workers: Optional[int] = None,
     ) -> Dict[str, Dict[str, Any]]:
         """
         批量扫描多只股票
@@ -212,17 +223,66 @@ class SmartMoneyScanner:
         Returns:
             字典，键为股票代码，值为分析结果
         """
-        logger.info(f"开始批量扫描 {len(tickers)} 只股票...")
+        unique_tickers = list(dict.fromkeys(ticker.strip().upper() for ticker in tickers))
+        workers = max(1, min(max_workers or self.batch_max_workers, len(unique_tickers)))
+        logger.info(
+            "开始批量扫描 %s 只股票 (并发=%s)...",
+            len(unique_tickers),
+            workers,
+        )
+        if not unique_tickers:
+            return {}
 
-        results = {}
+        completed = {}
+        with ThreadPoolExecutor(
+            max_workers=workers,
+            thread_name_prefix='smartmoney-scan',
+        ) as executor:
+            future_to_ticker = {
+                executor.submit(
+                    self._scan_batch_item,
+                    ticker,
+                    period,
+                    analyze_structure,
+                ): ticker
+                for ticker in unique_tickers
+            }
+            for progress, future in enumerate(as_completed(future_to_ticker), 1):
+                ticker = future_to_ticker[future]
+                try:
+                    completed[ticker] = future.result()
+                except Exception as e:
+                    logger.error("批量分析 %s 失败: %s", ticker, e, exc_info=True)
+                    completed[ticker] = {
+                        'ticker': ticker,
+                        'success': False,
+                        'error': str(e),
+                    }
+                logger.info("批量进度: %s/%s", progress, len(unique_tickers))
 
-        for i, ticker in enumerate(tickers, 1):
-            logger.info(f"\n进度: {i}/{len(tickers)}")
-            result = self.scan_stock(ticker, period, analyze_structure)
-            results[ticker] = result
+        logger.info("批量扫描完成！")
+        return {ticker: completed[ticker] for ticker in unique_tickers}
 
-        logger.info(f"\n批量扫描完成！")
-        return results
+    def _scan_batch_item(
+        self,
+        ticker: str,
+        period: int,
+        analyze_structure: bool,
+    ) -> Dict[str, Any]:
+        self._wait_for_batch_slot(self.data_fetcher._detect_market(ticker))
+        return self.scan_stock(ticker, period, analyze_structure)
+
+    def _wait_for_batch_slot(self, market: str) -> None:
+        """Space task starts independently for each market/provider lane."""
+        interval = float(self.batch_rate_limits.get(market, 0.0))
+        lock = self._batch_lane_locks.setdefault(market, threading.Lock())
+        with lock:
+            previous = self._batch_lane_started_at.get(market)
+            if previous is not None and interval > 0:
+                remaining = interval - (time.monotonic() - previous)
+                if remaining > 0:
+                    time.sleep(remaining)
+            self._batch_lane_started_at[market] = time.monotonic()
 
     @staticmethod
     def _get_market_code(ticker: str) -> str:
@@ -270,6 +330,13 @@ def main():
         help='启用结构性信号分析（需要更多 API 调用）'
     )
 
+    parser.add_argument(
+        '--workers',
+        type=int,
+        default=config.BATCH_MAX_WORKERS,
+        help=f'批量扫描最大并发数 (默认: {config.BATCH_MAX_WORKERS})'
+    )
+
     args = parser.parse_args()
 
     # 确定要扫描的股票
@@ -311,7 +378,8 @@ def main():
         results = scanner.scan_batch(
             tickers_to_scan,
             period=args.period,
-            analyze_structure=args.structure
+            analyze_structure=args.structure,
+            max_workers=args.workers,
         )
 
         # 打印摘要

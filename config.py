@@ -27,6 +27,14 @@ AKSHARE_HISTORY_SOURCE = os.getenv('AKSHARE_HISTORY_SOURCE', 'tencent')
 # 外部数据请求超时（秒）
 DATA_REQUEST_TIMEOUT = float(os.getenv('DATA_REQUEST_TIMEOUT', '15'))
 
+# 批量扫描并发与请求节流。不同市场使用不同数据接口，分别限速。
+BATCH_MAX_WORKERS = max(1, int(os.getenv('BATCH_MAX_WORKERS', '3')))
+BATCH_RATE_LIMIT_SECONDS = {
+    'A_STOCK': max(0.0, float(os.getenv('BATCH_RATE_LIMIT_A_STOCK', '0.35'))),
+    'US_STOCK': max(0.0, float(os.getenv('BATCH_RATE_LIMIT_US_STOCK', '0.50'))),
+    'HK_STOCK': max(0.0, float(os.getenv('BATCH_RATE_LIMIT_HK_STOCK', '0.50'))),
+}
+
 # yfinance 配置 (美股/港股数据)
 YFINANCE_ENABLED = True
 
@@ -191,6 +199,9 @@ MARKET_BENCHMARKS = {
 CACHE_ENABLED = True
 CACHE_DIR = './cache'
 CACHE_EXPIRY_DAYS = 1  # 缓存过期天数
+PERSISTENT_CACHE_ENABLED = os.getenv(
+    'PERSISTENT_CACHE_ENABLED', 'true'
+).strip().lower() in {'1', 'true', 'yes', 'on'}
 
 # =============================================================================
 # 日志配置
@@ -205,3 +216,35 @@ LOG_FILE = 'smartmoney_tracker.log'
 
 REPORT_OUTPUT_DIR = './reports'
 REPORT_FORMAT = 'text'  # 可选: 'text', 'html', 'json'
+
+# =============================================================================
+# 收盘后监控与告警
+# =============================================================================
+
+MONITOR_TIMEZONE = os.getenv('MONITOR_TIMEZONE', 'Asia/Shanghai')
+MONITOR_SCHEDULES = {
+    'A_STOCK': os.getenv('MONITOR_A_STOCK_TIME', '15:30'),
+    'HK_STOCK': os.getenv('MONITOR_HK_STOCK_TIME', '16:30'),
+    # 上海时间次日早晨运行，覆盖美股前一交易日收盘。
+    'US_STOCK': os.getenv('MONITOR_US_STOCK_TIME', '06:30'),
+}
+MONITOR_PERIOD = int(os.getenv('MONITOR_PERIOD', '250'))
+MONITOR_ANALYZE_STRUCTURE = os.getenv(
+    'MONITOR_ANALYZE_STRUCTURE', 'false'
+).strip().lower() in {'1', 'true', 'yes', 'on'}
+MONITOR_POLL_SECONDS = float(os.getenv('MONITOR_POLL_SECONDS', '60'))
+MONITOR_STATE_PATH = os.getenv('MONITOR_STATE_PATH', './cache/monitor_state.json')
+ALERT_RATINGS = tuple(
+    value.strip().upper()
+    for value in os.getenv('ALERT_RATINGS', 'STRONG_BUY,STRONG_SELL').split(',')
+    if value.strip()
+)
+ALERT_LOG_PATH = os.getenv('ALERT_LOG_PATH', './reports/alerts.jsonl')
+ALERT_WEBHOOK_URL = os.getenv('ALERT_WEBHOOK_URL', '')
+
+# 时点披露数据库。只有 published_at 不晚于回测决策时间的数据才可见。
+DISCLOSURE_DB_PATH = os.getenv(
+    'DISCLOSURE_DB_PATH', './data/disclosures.sqlite3'
+)
+DISCLOSURE_TIMEZONE = os.getenv('DISCLOSURE_TIMEZONE', 'Asia/Shanghai')
+DISCLOSURE_CAPTURE_TIMEOUT = float(os.getenv('DISCLOSURE_CAPTURE_TIMEOUT', '45'))

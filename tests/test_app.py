@@ -8,6 +8,7 @@ import json
 import sys
 import os
 import numpy as np
+from unittest.mock import Mock, patch
 
 # 添加项目根目录到路径
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -42,6 +43,8 @@ class TestFlaskAPI(unittest.TestCase):
         self.assertIn('股票分析'.encode('utf-8'), response.data)
         self.assertIn(b'Stock Analysis', response.data)
         self.assertIn(b'localStorage.setItem', response.data)
+        self.assertIn(b'Historical Backtest', response.data)
+        self.assertIn(b'id="equityChart"', self.client.get('/').data)
 
     def test_config_route(self):
         """测试配置接口"""
@@ -195,6 +198,48 @@ class TestFlaskAPI(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         data = json.loads(response.data)
         self.assertFalse(data['success'])
+
+    def test_backtest_api_missing_ticker(self):
+        response = self.client.post(
+            '/api/backtest',
+            data=json.dumps({}),
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(json.loads(response.data)['success'])
+
+    @patch('app.scanner.data_fetcher.get_stock_name', return_value='Test Stock')
+    @patch('app.backtester.run')
+    def test_backtest_api_returns_chart_data(self, run_backtest, _stock_name):
+        result = Mock()
+        result.to_dict.return_value = {
+            'ticker': 'TEST',
+            'config': {},
+            'summary': {
+                'total_return': 0.1,
+                'start_date': '2025-01-01',
+                'end_date': '2025-12-31',
+            },
+            'signals': [],
+            'series': [{'date': '2025-01-01', 'strategy': 100.0,
+                        'benchmark': 100.0, 'drawdown': 0.0}],
+            'orders': [],
+            'trades': [],
+        }
+        run_backtest.return_value = result
+
+        response = self.client.post(
+            '/api/backtest',
+            data=json.dumps({'ticker': 'test', 'period': 1000, 'rebalance': 5}),
+            content_type='application/json'
+        )
+        payload = json.loads(response.data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(payload['success'])
+        self.assertEqual(payload['ticker'], 'TEST')
+        self.assertEqual(payload['series'][0]['strategy'], 100.0)
+        result.to_dict.assert_called_once_with(include_series=True)
 
 
 class TestSignalScoreDisplay(unittest.TestCase):

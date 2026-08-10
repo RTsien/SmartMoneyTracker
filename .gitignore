@@ -70,6 +70,9 @@ reports/*.html
 *.csv
 *.xlsx
 *.json
+data/*.sqlite3
+data/*.sqlite3-shm
+data/*.sqlite3-wal
 
 # OS
 .DS_Store
