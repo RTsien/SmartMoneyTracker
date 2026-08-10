@@ -101,6 +101,10 @@ SmartMoneyTracker/
 │   ├── __init__.py
 │   └── akquant_adapter.py         # AKQuant indicator adapter
 │
+├── backtesting/                   # Point-in-time backtesting layer
+│   ├── __init__.py
+│   └── engine.py                  # AKQuant event-driven signal backtester
+│
 ├── reporting/                     # Reporting layer
 │   ├── __init__.py
 │   └── generator.py               # Text and HTML reports
@@ -194,6 +198,29 @@ for ticker, result in results.items():
         print(f"Rating: {result['rating']}")
 ```
 
+#### Backtesting
+
+Run the price-volume and technical-indicator strategy on historical data:
+
+```bash
+python3 backtest.py 600519.SH --period 1000 --warmup 120
+```
+
+The backtester uses AKQuant's event-driven engine. It evaluates signals only
+from bars available at each decision point and fills orders at the **next bar's
+open**. The report includes net return, buy-and-hold return, excess return,
+annualized return and volatility, Sharpe ratio, maximum drawdown, win rate, and
+trade count. Commission and slippage are enabled by default and configurable:
+
+```bash
+python3 backtest.py AAPL --commission-bps 10 --slippage-bps 5 --json
+```
+
+Only price-volume and technical-indicator signals are included in this MVP.
+Ownership disclosures and other structural data are excluded until the data
+layer can guarantee point-in-time snapshots, avoiding publication-date and
+survivorship bias.
+
 ### Example Output
 
 #### Distribution Signal
@@ -259,14 +286,14 @@ Shares may be moving from retail investors to institutions.
 | Market | Data sources | Highlights |
 |---|---|---|
 | **Chinese A-shares** | **AkShare (Tencent default, Eastmoney fallback)**, Tushare | Northbound capital flows, top-ten shareholder analysis, and shareholder count analysis |
-| **US stocks** | yfinance | Institutional ownership and daily market data |
-| **Hong Kong stocks** | yfinance, AkShare | Institutional ownership and Stock Connect holdings |
+| **US stocks** | **AkShare (Sina)**, yfinance fallback | Institutional ownership and daily market data |
+| **Hong Kong stocks** | **AkShare (Sina)**, yfinance fallback | Institutional ownership and Stock Connect holdings |
 
 ## 📈 Data Sources
 
 - **Daily market data**
   - Chinese A-shares: **AkShare via Tencent (default) or Eastmoney**, with Tushare as a fallback
-  - US and Hong Kong stocks: yfinance
+  - US and Hong Kong stocks: **AkShare via Sina**, with yfinance as a fallback
 - **Level 2 data** ⚠️ **Not included; a commercial API is required**
   - Potential providers: Eastmoney Choice, Wind, and similar vendors
   - Use case: microstructure signals such as bid-wall and sell-wall detection
@@ -383,20 +410,22 @@ The project is based on a detailed smart-money analysis framework:
 - [x] Relative-strength analysis
 - [x] Institutional ownership data for US and Hong Kong stocks
 
-### Phase 4: Aggregation and Reporting ✅
+### Phase 4: Aggregation and Reporting
 
 - [x] Risk-scoring system
 - [x] Report generator
-- [ ] Data visualizations
+- [ ] Backtest equity, drawdown, and signal visualizations
 
 ### Phase 5: Optimization and Expansion
 
-- [ ] Data caching
-- [ ] Concurrent processing
-- [ ] Real-time monitoring
+- [x] In-memory daily-data caching
+- [ ] Persistent TTL caching across processes
+- [ ] Bounded concurrent batch processing with rate limiting
+- [ ] Scheduled end-of-day scans and alerts
 - [x] Web interface
 - [x] Unit tests
-- [ ] Backtesting
+- [x] Point-in-time backtesting MVP with AKQuant next-open execution
+- [ ] Walk-forward validation and parameter-sensitivity reports
 
 ## 🧪 Testing
 

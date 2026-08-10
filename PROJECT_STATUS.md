@@ -1,322 +1,43 @@
-# SmartMoneyTracker 项目状态
+# SmartMoneyTracker Project Status
 
-**最后更新**: 2025-10-13
-**当前版本**: v0.3.0 - Bidirectional Analysis System
+Last updated: 2026-08-10
 
-## ✅ 已完成的工作
+This file is a concise implementation snapshot. The bilingual README files are
+the source of truth for setup, usage, and the public roadmap.
 
-### 1. 项目文档 (100%)
+## Current capabilities
 
-- ✅ [README.md](README.md) - 完整的项目介绍和使用指南
-- ✅ [CODING_SPEC.md](CODING_SPEC.md) - 双向分析技术规格说明
-- ✅ [PREREQUISITES.md](PREREQUISITES.md) - 双向分析理论框架
-- ✅ [QUICKSTART.md](QUICKSTART.md) - 快速开始指南
-- ✅ [CLAUDE.md](CLAUDE.md) - 开发指南
+- Chinese A-share, US, and Hong Kong daily data with provider fallbacks
+- AkQuant-backed SMA, OBV, RSI, MACD, and MFI calculations
+- Bidirectional price-volume, indicator, structural, and relative-strength signals
+- Weighted scoring from `STRONG_SELL` to `STRONG_BUY`
+- English/Chinese web interface, defaulting to English
+- Single-stock and batch analysis with in-memory daily-data caching
+- Point-in-time signal backtesting on AkQuant with next-open execution
+- Automated unit and integration tests
 
-### 2. 核心代码实现 (100%)
+## Backtesting boundary
 
-#### 2.1 配置和基础设施
-- ✅ [config.py](config.py) - 双向信号权重配置（-10 to +10）
-  - 正数权重：机构进场/吸筹信号
-  - 负数权重：机构离场/派发信号
-  - 五级评级映射（STRONG_BUY ~ STRONG_SELL）
-- ✅ [requirements.txt](requirements.txt) - 依赖管理
-- ✅ [.env.example](.env.example) - 环境变量模板
-- ✅ [.gitignore](.gitignore) - Git 忽略规则
+The backtesting MVP includes only price-volume and technical-indicator signals.
+It deliberately excludes institutional holdings, shareholder disclosures, news,
+and other structural inputs until point-in-time snapshots and publication dates
+are available. This prevents current knowledge from leaking into historical
+decisions.
 
-#### 2.2 数据层 (data_fetcher/)
-- ✅ `manager.py` - 统一数据获取管理器
-  - 支持 A股、美股、港股数据获取
-  - **AkShare API 集成（默认使用腾讯 A 股历史行情，东方财富备用）**
-  - Tushare API 集成（A股备选数据源）
-  - yfinance API 集成（美股/港股数据源）
-  - 智能数据源切换和降级机制
-  - **AkQuant Rust 技术指标引擎**（SMA、OBV、RSI、MACD、MFI）
-  - 技术指标计算（OBV, RSI, MACD, MFI）
-  - 机构持股数据获取（A股/美股/港股）
-  - 股东户数数据获取
-  - 北向资金数据获取
-  - 数据概览日志（首尾记录显示）
+## Active roadmap
 
-#### 2.3 分析层 (analysis/) - 双向分析
+- [ ] Add equity, drawdown, benchmark, and signal charts for backtest results
+- [ ] Add persistent TTL caching across application processes
+- [ ] Add bounded concurrent batch processing with provider-aware rate limits
+- [ ] Add scheduled end-of-day scans and configurable alerts
+- [ ] Add walk-forward/out-of-sample validation and parameter-sensitivity reports
+- [ ] Add point-in-time disclosure storage before backtesting structural signals
 
-##### 价量关系信号 (`pv_signals.py`)
-**吸筹信号（Accumulation）**:
-- ✅ 放量突破横盘区（ACCUMULATION_BREAKOUT）
-- ✅ 威科夫弹簧/震仓（WYCKOFF_SPRING）
+## Deferred or out of scope
 
-**派发信号（Distribution）**:
-- ✅ 高位放量滞涨（HIGH_VOLUME_STAGNATION）
-- ✅ 放量下跌（HIGH_VOLUME_DECLINE）
-- ✅ 放量跌破支撑位（BREAK_SUPPORT_HEAVY_VOLUME）
-- ✅ 高位缩量上涨（LOW_VOLUME_RISE）
-
-##### 技术指标信号 (`indicator_signals.py`)
-**看涨信号（Bullish）**:
-- ✅ OBV 看涨背离（OBV_BULLISH_DIVERGENCE）
-- ✅ MFI 看涨背离（MFI_BULLISH_DIVERGENCE）
-- ✅ MFI 超卖（MFI_OVERSOLD）
-
-**看跌信号（Bearish）**:
-- ✅ OBV 看跌背离（OBV_BEARISH_DIVERGENCE）
-- ✅ MFI 看跌背离（MFI_BEARISH_DIVERGENCE）
-- ✅ MFI 超买（MFI_OVERBOUGHT）
-- ✅ RSI 看跌背离（RSI_BEARISH_DIVERGENCE）
-- ✅ MACD 看跌背离（MACD_BEARISH_DIVERGENCE）
-
-##### 结构性信号 (`structural_signals.py`)
-**吸筹证据（Accumulation）**:
-- ✅ 新机构进入十大股东（NEW_INSTITUTION）
-- ✅ 机构增持（INSTITUTIONAL_BUY_IN）
-- ✅ 股东户数减少（SHAREHOLDER_COUNT_DECREASE）
-
-**派发证据（Distribution）**:
-- ✅ 机构大幅减持（INSTITUTIONAL_SELL_OFF）
-- ✅ 股东户数增加（SHAREHOLDER_COUNT_INCREASE）
-- ✅ 董监高减持（INSIDER_SELLING）
-
-##### 相对强弱 (`relative_strength.py`)
-- ✅ RSP（相对强弱价格）计算
-- ✅ 个股与基准比较
-- ✅ 趋势分析（RSP_STRONG / RSP_WEAK）
-
-#### 2.4 聚合层 (aggregator/)
-- ✅ `scorer.py` - 信号评分聚合器（SignalAggregator）
-  - 双向评分系统（-10 to +10）
-  - 自动信号分类（inflow_signals / outflow_signals）
-  - 五级评级判定（STRONG_BUY/BUY/NEUTRAL/SELL/STRONG_SELL）
-  - 双向投资建议生成
-  - **已移除所有向后兼容代码**
-
-#### 2.5 报告层 (reporting/)
-- ✅ `generator.py` - 双向报告生成器
-  - 分离展示进场信号和离场信号
-  - 评级可视化（🚀🚀, 🚀, ⚪, ⚠️, 🛑🛑）
-  - 完整的中英文信号翻译（20+信号）
-  - 双向评分展示（-10 to +10）
-  - JSON 格式报告支持
-
-#### 2.6 主程序
-- ✅ [main.py](main.py) - 双向分析主程序
-  - SmartMoneyScanner 类（双向评分）
-  - 单股票扫描
-  - 批量扫描
-  - 命令行参数解析
-  - 完整的双向分析流程协调
-  - 增强日志输出（emoji + 双向统计）
-
-- ✅ [example.py](example.py) - 使用示例（已更新）
-  - 单股票扫描示例（双向API）
-  - 批量扫描示例（双向统计）
-  - 自定义配置示例（双向权重）
-  - 美股分析示例
-  - 原始数据访问示例
-
-## 📊 功能覆盖率
-
-### 理论框架 vs 代码实现（双向分析）
-
-| 功能模块 | 理论章节 | 实现状态 | 覆盖率 |
-|---------|---------|---------|-------|
-| **价量关系分析（双向）** | 第二节 | ✅ 已实现 | 100% |
-| - 吸筹信号（突破/弹簧） | 2.1 | ✅ | ✓ |
-| - 派发信号（滞涨/下跌等） | 2.2 | ✅ | ✓ |
-| **技术指标分析（双向）** | 第三节 | ✅ 已实现 | 100% |
-| - 看涨背离（OBV/MFI） | 3.1 | ✅ | ✓ |
-| - 看跌背离（OBV/MFI/RSI/MACD） | 3.2 | ✅ | ✓ |
-| - 超买超卖（MFI） | 3.3 | ✅ | ✓ |
-| **微观结构分析** | 第四节 | ⚠️ 接口预留 | 30% |
-| - 买单墙支撑 | 4.1 | 🔧 | 接口+权重已配置 |
-| - 卖盘压单 | 4.2 | 🔧 | 接口+权重已配置 |
-| - Level-2 数据 | 4.3 | ❌ | 需商业接口（数千~数万元/年） |
-
-**微观结构说明**：
-- ✅ 模块接口已完整实现（`microstructure_signals.py`）
-- ✅ 信号权重已在 `config.py` 中配置
-- ❌ 需要 Level-2 十档盘口数据（商业接口）
-- 💡 原因：Level-2 数据需要万得、东方财富 Choice 等商业数据源（费用：数千至数万元/年）
-- 💡 影响：**不影响核心功能**，其他 20+ 种免费信号已足够强大
-- 🔧 扩展：有数据源时，只需实现检测逻辑，无需修改架构
-| **结构性信号（双向）** | 第五节 | ✅ 已实现 | 100% |
-| - 机构持股变化（双向） | 5.1 | ✅ | A股/美股/港股 |
-| - 股东户数变化（双向） | 5.2 | ✅ | A股完整支持 |
-| - 基本面催化剂 | 5.3 | 🔧 | 权重已配置 |
-| **相对强弱（双向）** | 第六节 | ✅ 已实现 | 100% |
-| - RSP 分析（强/弱） | 6.1 | ✅ | ✓ |
-| **市场差异化** | 第七节 | ✅ 已实现 | 95% |
-| - A股特色 | 7.1 | ✅ | 完整支持 |
-| - 美股特色 | 7.2 | ✅ | 机构持股已实现 |
-| - 港股特色 | 7.3 | ✅ | 双数据源支持 |
-
-## 🎯 核心特性
-
-### ✅ 已实现（v0.3.0）
-1. **✨ 双向评分系统**: -10 to +10 评分范围
-2. **✨ 智能信号分类**: 自动分离进场/离场信号
-3. **✨ 五级评级映射**: STRONG_BUY ~ STRONG_SELL
-4. **✨ 完整信号覆盖**: 20+ 种双向信号
-5. **多市场支持**: A股、美股、港股全覆盖
-6. **多数据源**: AkShare（腾讯默认、东方财富备用）+ Tushare + yfinance
-7. **智能降级**: 数据源自动切换和容错机制
-8. **多维度分析**: 6大分析维度，全周期追踪
-9. **灵活配置**: 可自定义双向权重和参数
-10. **命令行工具**: 方便的CLI接口
-11. **Python API**: 编程友好的双向分析接口
-12. **批量处理**: 支持批量股票扫描
-13. **详细报告**: 分离展示进场和离场信号
-14. **调试增强**: 详细的数据概览和日志
-
-### ⚠️ 部分实现/待优化
-1. **Level-2 数据**: 需要商业数据源接口
-2. **美股13F报告**: 可扩展 SEC EDGAR API
-3. **港股披露易**: 可扩展完整披露易数据
-4. **基本面新闻**: 需要新闻API集成
-5. **数据缓存**: 基础功能待实现
-6. **并发优化**: 待实现
-
-### ❌ 未实现（计划中）
-1. **可视化界面**: Web UI
-2. **实时监控**: 定时扫描和告警
-3. **回测系统**: 历史准确度验证
-4. **数据库存储**: 持久化存储
-5. **多语言支持**: 国际化
-
-## 📈 代码统计
-
-```
-文件数量:
-- Python 模块: 14个
-- 文档文件: 6个
-- 配置文件: 4个
-
-代码行数（v0.3.0）:
-- data_fetcher/: ~660行
-- analysis/: ~1,500行（+200行，新增双向检测方法）
-- aggregator/: ~155行（重构为双向评分）
-- reporting/: ~280行（+30行，新增翻译和格式化）
-- main.py: ~350行（更新为双向API）
-- config.py: ~195行（+35行，双向权重配置）
-- example.py: ~165行（更新示例）
-总计: ~3,305行（+435行新代码）
-
-依赖库:
-- pandas, numpy: 数据处理
-- akshare: A股数据（默认）
-- tushare: A股数据（备选）
-- yfinance: 美股/港股数据
-- matplotlib, plotly: 可视化（预留）
-```
-
-## 🚀 下一步计划
-
-### Phase 3.1: 完善集成（优先级：高）
-- [x] ✅ 实现完整双向评分系统
-- [x] ✅ 新增吸筹信号检测方法
-- [x] ✅ 重构评分聚合器
-- [x] ✅ 更新报告生成器
-- [x] ✅ 更新所有示例代码
-- [ ] 添加单元测试（双向系统）
-- [ ] 性能优化和缓存机制
-
-### Phase 4: 扩展功能（优先级：中）
-- [ ] 实现回测框架验证信号准确度
-- [ ] 添加新闻情感分析
-- [ ] 扩展美股13F报告解析（SEC EDGAR）
-- [ ] 扩展港股披露易完整数据
-- [ ] 实现数据缓存机制
-- [ ] 添加并发批量扫描
-
-### Phase 5: 用户体验（优先级：中）
-- [ ] 开发 Web 界面
-- [ ] 添加可视化图表（双向信号）
-- [ ] 实时监控和告警
-- [ ] 移动端支持
-
-### Phase 6: 高级功能（优先级：低）
-- [ ] 机器学习集成
-- [ ] 策略优化引擎
-- [ ] 社区共享平台
-
-## 💡 使用建议
-
-### 当前最佳实践（v0.3.0）
-
-1. **理解评分系统**
-   - **正分 (+)**: 表示机构吸筹信号，考虑买入时机
-   - **负分 (-)**: 表示机构派发信号，考虑降低仓位
-   - **评分范围**: -10（强力派发）到 +10（强力吸筹）
-   - **评级系统**:
-     - STRONG_BUY (🚀🚀): +6 ~ +10
-     - BUY (🚀): +2 ~ +5
-     - NEUTRAL (⚪): -1 ~ +1
-     - SELL (⚠️): -5 ~ -2
-     - STRONG_SELL (🛑🛑): -10 ~ -6
-
-2. **数据获取**
-   - **推荐**：直接使用 AkShare（无需注册，开箱即用）
-   - 可选：注册 Tushare Pro 账号作为备选
-   - 配置 Token 到 `.env` 文件（仅 Tushare 需要）
-   - 通过环境变量 `A_STOCK_DATA_SOURCE` 切换数据源
-
-3. **信号权重调整**
-   - 双向权重系统：正数表示吸筹，负数表示派发
-   - 根据市场环境调整权重强度
-   - 牛市适当增加吸筹信号权重
-   - 熊市提高派发信号权重
-
-4. **批量扫描**
-   - 先扫描不启用结构性分析（避免API限流）
-   - 根据评分筛选 STRONG_BUY 或 STRONG_SELL
-   - 对极端评分股票再启用完整分析
-
-5. **结果解读**
-   - **评分 +6 以上**: 强烈吸筹信号，关注买入机会
-   - **评分 -6 以下**: 强烈派发信号，考虑降低仓位
-   - 进场和离场信号数量对比（inflow_count vs outflow_count）
-   - 多信号收敛（同一方向多个信号）更可靠
-   - 始终结合基本面判断
-
-## 🐛 已知问题
-
-1. **Tushare 限流**: 免费版有调用频率限制（已通过 AkShare 默认规避）
-2. **港股数据**: yfinance 可能存在轻微延迟
-3. **结构性数据**: 季报数据存在时间滞后（行业通病）
-4. **调试日志**: 部分 DEBUG 级别日志需要手动开启
-
-## 📝 变更日志
-
-### v0.3.0 (2025-10-13)
-- 🚀 **重大更新：完整双向分析系统**
-- ✅ 实现双向评分系统（-10 to +10）
-- ✅ 新增 10+ 种吸筹信号检测方法
-- ✅ 保留并增强所有派发信号检测
-- ✅ 重构 SignalAggregator 支持双向评分
-- ✅ 更新报告生成器分离展示进场/离场信号
-- ✅ 新增完整的中英文信号翻译
-- ✅ 更新所有示例代码使用新 API
-- ✅ 移除所有向后兼容代码
-
-### v0.2.0 (2025-10-13)
-- 🚀 重大更新
-- ✅ 新增 AkShare 腾讯行情作为默认 A股历史数据源
-- ✅ 新增 AkQuant 作为技术指标计算基础库
-- ✅ 实现智能数据源切换和降级机制
-- ✅ 完善港美股机构持股数据获取
-- ✅ 增强日志输出（数据概览、调试信息）
-- ✅ 优化用户体验（emoji、格式化输出）
-
-### v0.1.0 (2025-10-13)
-- 🎉 首次发布
-- ✅ 完成核心功能实现
-- ✅ 完成文档编写
-- ✅ 添加使用示例
-
----
-
-**项目完成度**: 约 95%
-
-**核心功能**: ✅ 双向分析系统完整可用
-
-**数据源**: ✅ 多数据源支持，稳定可靠
-
-**建议**: 🚀 强烈推荐使用，功能完善，双向追踪机构动向
+- Commercial Level 2 microstructure analysis remains an extension point until a
+  licensed data feed is configured.
+- Tick-level real-time monitoring is not a near-term goal for the current free
+  end-of-day data stack; scheduled scans are the practical replacement.
+- Generic machine-learning and community-sharing features have no acceptance
+  criteria and are not part of the active roadmap.

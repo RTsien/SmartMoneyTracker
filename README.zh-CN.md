@@ -101,6 +101,10 @@ SmartMoneyTracker/
 │   ├── __init__.py
 │   └── akquant_adapter.py         # AkQuant 指标适配器
 │
+├── backtesting/                   # 时点安全回测层
+│   ├── __init__.py
+│   └── engine.py                  # AkQuant 事件驱动信号回测器
+│
 └── reporting/                      # 报告生成层
     ├── __init__.py
     └── generator.py               # 生成文本/HTML报告
@@ -190,6 +194,26 @@ for stock, result in results.items():
         print(f"Rating: {result['rating']}")
 ```
 
+#### 方式三：历史回测
+
+对价量与技术指标策略运行历史回测：
+
+```bash
+python3 backtest.py 600519.SH --period 1000 --warmup 120
+```
+
+回测使用 AkQuant 事件驱动引擎。每个决策点只读取当时已经出现的 K 线，订单在
+**下一根 K 线开盘价**成交。报告包含扣除交易成本后的收益、买入持有收益、超额
+收益、年化收益和波动率、Sharpe、最大回撤、胜率及交易次数。手续费和滑点默认
+启用，也可以调整或输出 JSON：
+
+```bash
+python3 backtest.py AAPL --commission-bps 10 --slippage-bps 5 --json
+```
+
+当前 MVP 只纳入价量和技术指标信号。股东披露等结构性数据暂不进入历史回测，
+直到数据层能够提供严格的时点快照，以避免公告日期偏差和幸存者偏差。
+
 ### 输出示例
 
 #### 示例 1：派发信号
@@ -253,14 +277,14 @@ Recommendation:
 | 市场 | 数据源 | 核心特色 |
 |------|--------|----------|
 | **A股** | **AkShare（默认腾讯行情，东方财富备用）**, Tushare | 北向资金监控、十大股东分析、股东户数分析 |
-| **美股** | yfinance | 机构持股数据、日线行情数据 |
-| **港股** | yfinance, AkShare | 机构持股数据、港股通持股数据 |
+| **美股** | **AkShare（新浪）**，yfinance 备用 | 机构持股数据、日线行情数据 |
+| **港股** | **AkShare（新浪）**，yfinance 备用 | 机构持股数据、港股通持股数据 |
 
 ## 📈 数据来源
 
 - **日线行情**: 
   - A股: **AkShare 腾讯接口（默认）或东方财富接口**, Tushare 兜底
-  - 美股/港股: yfinance
+  - 美股/港股: **AkShare 新浪接口**，yfinance 兜底
 - **Level-2 数据** ⚠️ **未实现（需商业接口）**: 东方财富 Choice、万得等商业数据提供商
   - 费用：数千至数万元/年
   - 用途：微观结构信号（买单墙、卖盘压单检测）
@@ -377,18 +401,20 @@ A_STOCK_DATA_SOURCE=tushare python3 main.py 600519.SH
 - [x] 相对强弱分析
 - [x] 港美股机构持股数据获取
 
-### Phase 4: 聚合与报告 ✅ 已完成
+### Phase 4: 聚合与报告
 - [x] 风险评分系统
 - [x] 报告生成器
-- [ ] 可视化图表
+- [ ] 回测净值、回撤和信号图表
 
 ### Phase 5: 优化与扩展
-- [ ] 数据缓存机制
-- [ ] 并发处理优化
-- [ ] 实时监控模式
+- [x] 日线行情进程内缓存
+- [ ] 跨进程持久化 TTL 缓存
+- [ ] 带限流和并发上限的批量处理
+- [ ] 收盘后定时扫描和告警
 - [x] Web 界面 ✅
 - [x] 单元测试 ✅
-- [ ] 回测系统
+- [x] AkQuant 下一根开盘成交的时点安全回测 MVP
+- [ ] 滚动样本外验证和参数敏感性报告
 
 ## 🧪 测试
 
